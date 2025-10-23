@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>ComputerGraphicsLab</title>
+
+    <link rel="icon" type="image/svg+xml" href="../public/icons/Pepe.svg" />
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tahoma:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  </head>
+
+  <body class="bg-white" style="font-family: 'Tahoma', sans-serif; background-image: url('../public/images/background.png');">
+
+    <!-- Main Content -->
+    <div class="min-h-screen flex flex-col items-center justify-start p-4 gap-6">
+
+      <!-- Logo -->
+      <div class="max-w-6xl">
+        <img src="../public/images/logo.png" alt="Computer Graphics Lab" class="w-full h-auto" />
+      </div>
+
+      <!-- Okno Windows XP -->
+      <div class="w-full max-w-md rounded-t-lg window-open-animation">
+
+        <!-- Title -->
+        <div class="bg-gradient-to-b from-[#3C8CF6] via-[#0054E3] to-[#0054E3] border-3 border-[#0831D9] border-b-0 rounded-t-lg px-2 py-1 flex items-center justify-between">
+          
+          <div class="flex items-center gap-2">
+            <img src="../public/icons/Pepe.svg" alt="icon" class="w-4 h-4" />
+            <span class="text-white text-sm font-bold">Paint - Start Page</span>
+          </div>
+          
+          <!-- Navigate buttons -->
+          <div class="flex gap-1 flex-wrap">
+            <button id="minimize-btn" class="w-5 h-5 hover:cursor-pointer hover:bg-[#3C8CF6] active:bg-[#002C7A] flex items-center justify-center border border-white rounded-sm">
+              <span class="w-2 h-0.5 bg-white mt-2"></span>
+            </button>
+            <button id="maximize-btn" class="w-5 h-5 hover:cursor-pointer hover:bg-[#3C8CF6] active:bg-[#002C7A] flex items-center justify-center border border-white rounded-sm">
+              <span class="w-2.5 h-2.5 border border-white"></span>
+            </button>
+            <button id="close-btn" class="w-5 h-5 hover:cursor-pointer bg-[#E24C4C] hover:bg-[#FF5D5D] active:bg-[#C02020] flex items-center justify-center border border-white rounded-sm">
+              <span class="absolute w-2.5 h-0.5 bg-white rotate-45"></span>
+              <span class="absolute w-2.5 h-0.5 bg-white -rotate-45"></span>
+            </button>
+          </div>
+
+        </div>
+
+        <!-- Window Content -->
+        <div class="bg-[#ECE9D8] border-3 border-[#0831D9] p-6">
+
+          <label class="block text-sm font-bold mb-2 text-[#000080]">Select Project:</label>
+          
+          <select id="project-select" class="xp-select w-full mb-3">
+            <option value="start-page">-- Start Page --</option>
+            <option value="project1">-- Project 1 --</option>
+          </select>
+
+          <div class="flex justify-end">
+            <button id="open-project-btn" class="xp-button font-bold">
+              Open Project
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+      
+    </div>
+
+    <!-- Modal Component -->
+    <modal-window></modal-window>
+
+    <!-- Logic -->
+    <script type="module" src="../src/projects/start-page.ts"></script>
+  </body>
+</html>

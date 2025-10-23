@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <title>Paint - Project 1</title>
+
+    <link rel="icon" type="image/svg+xml" href="../public/icons/Pepe.svg" />
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tahoma:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  </head>
+
+  <body class="bg-white p-4" style="font-family: 'Tahoma', sans-serif; background-image: url('../public/images/background.png');">
+
+    <!-- Base Window Component -->
+    <base-window title="Paint - Project 1">
+      
+      <!-- Menu Left -->
+      <div slot="menu-left">
+        <button id="file-btn" class="xp-button">
+          File
+        </button>
+        <button id="draw-params-btn" class="xp-button">
+          Draw Parameters
+        </button>
+      </div>
+
+      <!-- Toolbox -->
+      <div slot="toolbox" class="bg-[#ECE9D8]">
+        <div class="flex flex-col gap-1 p-2">
+          
+          <button id="tool-select" class="xp-button-tool" title="Select">
+            <i class="fas fa-mouse-pointer"></i>
+          </button>
+
+          <button id="tool-brush" class="xp-button-tool" title="Brush">
+            <i class="fas fa-paint-brush"></i>
+          </button>
+
+          <button id="tool-line" class="xp-button-tool" title="Line">
+            <i class="fas fa-minus rotate-45 mt-1"></i>
+          </button>
+
+          <button id="tool-rectangle" class="xp-button-tool" title="Rectangle">
+            <i class="far fa-square"></i>
+          </button>
+
+          <button id="tool-circle" class="xp-button-tool" title="Circle">
+            <i class="far fa-circle"></i>
+          </button>
+
+        </div>
+      </div>
+
+      <!-- Panels -->
+      <div slot="panels">
+        
+        <!-- File Panel -->
+        <div id="file-panel" class="hidden bg-[#ECE9D8] border-t border-[#808080] px-2 py-2">
+          <div class="flex items-center gap-2 text-xs flex-wrap">
+            <button id="save-file-btn" class="xp-button">
+              <i class="fas fa-save mr-1"></i>Save Drawing
+            </button>
+            
+            <button id="load-file-btn" class="xp-button">
+              <i class="fas fa-folder-open mr-1"></i>Load Drawing
+            </button>
+            
+            <input type="file" id="file-input" accept=".json" class="hidden">
+            
+            <button id="close-file-btn" class="xp-button text-red-500 font-bold">
+              Close
+            </button>
+          </div>
+        </div>
+
+        <!-- Drawing Parameters Panel -->
+        <div id="draw-params-panel" class="hidden bg-[#ECE9D8] border-t border-[#808080] px-2 py-2">
+          <div class="flex items-center gap-2 text-xs flex-wrap">
+            <label class="flex items-center gap-1">
+              <span>Shape:</span>
+              <select id="param-shape" class="xp-select">
+                <option value="line">Line</option>
+                <option value="rectangle">Rectangle</option>
+                <option value="circle">Circle</option>
+              </select>
+            </label>
+            
+            <label class="flex items-center gap-1">
+              <span>X1:</span>
+              <input type="number" id="param-x1" placeholder="0" class="xp-input">
+            </label>
+            
+            <label class="flex items-center gap-1">
+              <span>Y1:</span>
+              <input type="number" id="param-y1" placeholder="0" class="xp-input">
+            </label>
+            
+            <label class="flex items-center gap-1">
+              <span>X2:</span>
+              <input type="number" id="param-x2" placeholder="100" class="xp-input">
+            </label>
+            
+            <label class="flex items-center gap-1">
+              <span>Y2:</span>
+              <input type="number" id="param-y2" placeholder="100" class="xp-input">
+            </label>
+            
+            <button id="draw-shape-btn" class="xp-button text-green-500 font-bold">
+              Draw
+            </button>
+            
+            <button id="close-params-btn" class="xp-button text-red-500 font-bold">
+              Close
+            </button>
+          </div>
+        </div>
+
+        <!-- Edit Shape Panel -->
+        <div id="edit-shape-panel" class="hidden bg-[#ECE9D8] border-t border-[#808080] px-2 py-2">
+          <div class="flex items-center gap-2 text-xs flex-wrap">
+            <span>Editing: <span id="edit-shape-type" class="font-bold text-blue-500">-</span></span>
+            
+            <label class="flex items-center gap-1">
+              <span>X1:</span>
+              <input type="number" id="edit-x1" placeholder="0" class="xp-input">
+            </label>
+            
+            <label class="flex items-center gap-1">
+              <span>Y1:</span>
+              <input type="number" id="edit-y1" placeholder="0" class="xp-input">
+            </label>
+            
+            <label class="flex items-center gap-1">
+              <span>X2:</span>
+              <input type="number" id="edit-x2" placeholder="100" class="xp-input">
+            </label>
+            
+            <label class="flex items-center gap-1">
+              <span>Y2:</span>
+              <input type="number" id="edit-y2" placeholder="100" class="xp-input">
+            </label>
+            
+            <button id="update-shape-btn" class="xp-button text-green-500 font-bold">
+              <i class="fas fa-check mr-1"></i>Update Shape
+            </button>
+            
+            <button id="close-edit-btn" class="xp-button text-red-500 font-bold">
+              Close
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </base-window>
+    
+    <!-- Modal Component -->
+    <modal-window></modal-window>
+
+    <!-- Logic -->
+    <script type="module" src="../src/projects/project-1.ts"></script>
+  </body>
+</html>

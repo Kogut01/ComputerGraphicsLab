@@ -1,0 +1,123 @@
+/* XP-style button */
+.xp-button {
+  padding: 0.125rem 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  cursor: pointer;
+  background: linear-gradient(to bottom, #ffffff, #ECE9D8);
+  border-width: 2px;
+  border-style: solid;
+  border-top-color: #ffffff;
+  border-left-color: #ffffff;
+  border-right-color: #404040;
+  border-bottom-color: #404040;
+  transition: filter 0.1s ease-in-out;
+}
+
+.xp-button:hover {
+  filter: brightness(1.05);
+}
+
+.xp-button:active {
+  filter: brightness(0.95);
+  border-top-color: #404040;
+  border-left-color: #404040;
+  border-right-color: #ffffff;
+  border-bottom-color: #ffffff;
+}
+
+/* XP-style tool button */
+.xp-button-tool {
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  cursor: pointer;
+  background: linear-gradient(to bottom, #ffffff, #ECE9D8);
+  border-width: 2px;
+  border-style: solid;
+  border-top-color: #ffffff;
+  border-left-color: #ffffff;
+  border-right-color: #404040;
+  border-bottom-color: #404040;
+  transition: filter 0.1s ease-in-out;
+}
+
+.xp-button-tool:hover {
+  filter: brightness(1.05);
+}
+
+.xp-button-tool:active {
+  filter: brightness(0.95);
+  border-top-color: #404040;
+  border-left-color: #404040;
+  border-right-color: #ffffff;
+  border-bottom-color: #ffffff;
+}
+
+/* Active style for tools */
+.xp-button-tool-active {
+  filter: brightness(0.9);
+  border-top-color: #404040;
+  border-left-color: #404040;
+  border-right-color: #ffffff;
+  border-bottom-color: #ffffff;
+}
+
+/* XP-style input */
+.xp-input {
+  width: 4rem;
+  padding: 0.25rem 0.5rem;
+  background-color: white;
+  border-width: 2px;
+  border-style: solid;
+  border-top-color: #7F9DB9;
+  border-left-color: #7F9DB9;
+  border-right-color: white;
+  border-bottom-color: white;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.xp-input:hover {
+  cursor: text;
+}
+
+.xp-input:focus {
+  outline: none;
+  background-color: #F0F0F0;
+  border-top-color: #404040;
+  border-left-color: #404040;
+  border-right-color: #D4D0C8;
+  border-bottom-color: #D4D0C8;
+}
+
+/* XP-style select */
+.xp-select {
+  padding: 0.25rem 0.5rem;
+  background-color: white;
+  border-width: 2px;
+  border-style: solid;
+  border-top-color: #7F9DB9;
+  border-left-color: #7F9DB9;
+  border-right-color: white;
+  border-bottom-color: white;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.xp-select:hover {
+  cursor: pointer;
+}
+
+.xp-select:focus {
+  outline: none;
+  background-color: #F0F0F0;
+  border-top-color: #404040;
+  border-left-color: #404040;
+  border-right-color: #D4D0C8;
+  border-bottom-color: #D4D0C8;
+}
+
