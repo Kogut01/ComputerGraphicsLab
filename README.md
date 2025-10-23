@@ -1,4 +1,4 @@
-![Logo projektu](/public/images/logo.png)
+![Project Logo](/public/images/logo.png)
 
 <div align="center">
     <b> Browser-based graphics editor inspired by Paint from Windows XP </b>
@@ -16,18 +16,18 @@
 Computer Graphics Lab is an interactive vector graphics editor designed with a nostalgic Windows XP interface, to evoke a retro feeling.
 
 
-## 🖼️ Zrzut ekranu
+## 🖼️ App Screen
 
-![Zrzut ekranu aplikacji](/public/images/app.png)
+![App Screen](/public/images/app.png)
 
 ## 🚀 Quick Start
 
-### Wymagania wstępne
+### Prerequisites
 
-- Node.js (wersja 14 lub nowsza)
+- Node.js
 - npm
 
-### Instalacja
+### Install
 
 ```bash
 # Clone and install
