@@ -121,3 +121,31 @@
   border-bottom-color: #D4D0C8;
 }
 
+/* XP-style slider */
+.xp-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 0.5rem;
+  background: #808080;
+  outline: none;
+  cursor: pointer;
+}
+
+.xp-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 0.75rem;
+  height: 0.75rem;
+  background: #ffffff;
+  border: 2px solid #404040;
+  cursor: pointer;
+}
+
+.xp-slider::-moz-range-thumb {
+  width: 0.75rem;
+  height: 0.75rem;
+  background: #ffffff;
+  border: 2px solid #404040;
+  cursor: pointer;
+}
+

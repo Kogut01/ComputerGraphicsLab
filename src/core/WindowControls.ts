@@ -1,7 +1,5 @@
-// Modal import
 import { showModal } from './ModalManager';
 
-// Window control buttons and their functionality
 export function initializeWindowControls() {
   const minimizeBtn = document.getElementById('minimize-btn');
   const maximizeBtn = document.getElementById('maximize-btn');

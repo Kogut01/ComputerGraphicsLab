@@ -1,4 +1,3 @@
-// Modal elements
 const modalIcon = document.getElementById('modal-icon') as HTMLElement;
 const modalTitle = document.getElementById('modal-title') as HTMLSpanElement;
 const modalCloseBtn = document.getElementById('modal-close-btn') as HTMLButtonElement;
@@ -8,14 +7,12 @@ const modalOkBtn = document.getElementById('modal-ok-btn') as HTMLButtonElement;
 const modalWindow = document.getElementById('modal-window') as HTMLDivElement;
 const modalOverlay = document.getElementById('modal-overlay') as HTMLDivElement;
 
-// Modal interface
 interface ModalOptions {
   icon?: string;
   title: string;
   content: string;
 }
 
-// Show modal
 export function showModal(options: ModalOptions) {
   modalIcon.className = `${options.icon || 'fas fa-info-circle'} text-white text-sm`;
   modalTitle.textContent = options.title;
@@ -25,7 +22,6 @@ export function showModal(options: ModalOptions) {
   modalWindow.style.animation = 'windowOpen 0.2s ease-out';
 }
 
-// Hide modal
 export function hideModal() {
   modalOverlay.classList.add('hidden');
 }

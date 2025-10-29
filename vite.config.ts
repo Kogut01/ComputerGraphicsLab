@@ -9,7 +9,6 @@ export default defineConfig({
     tailwindcss(),
   ],
   
-  base: 'ComputerGraphicsLab/',
   build: {
     outDir: 'dist',
     rollupOptions: {
@@ -18,6 +17,7 @@ export default defineConfig({
       }
     }
   },
+  
   server: {
     open: '/pages/start-page.html'
   }

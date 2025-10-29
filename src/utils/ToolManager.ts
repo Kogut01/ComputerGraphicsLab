@@ -1,8 +1,6 @@
-// Imports
 import { type Tool, DrawingManager } from './DrawingManager';
 import { CanvasManager } from './BaseCanvas';
 
-// Tool Manager class
 export class ToolManager {
   private currentTool: Tool | null = null;
   private toolButtons: Record<Tool, HTMLButtonElement>;
@@ -22,15 +20,13 @@ export class ToolManager {
     this.canvasManager = canvasManager;
     this.initializeButtons();
   }
-  
-  // Initialize tool buttons
+
   private initializeButtons(): void {
     Object.entries(this.toolButtons).forEach(([tool, btn]) => {
       btn.addEventListener('click', () => this.selectTool(tool as Tool));
     });
   }
-  
-  // Select tool
+
   selectTool(tool: Tool): void {
     this.currentTool = tool;
     this.drawingManager.clearSelection();
@@ -43,7 +39,6 @@ export class ToolManager {
     this.canvasManager.setCursor(tool === 'select' ? 'pointer' : 'crosshair');
   }
   
-  // Get current tool
   getCurrentTool(): Tool | null {
     return this.currentTool;
   }

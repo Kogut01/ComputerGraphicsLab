@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
-    <title>Paint - Project 1</title>
+    <title>Paint - Project</title>
 
     <link rel="icon" type="image/svg+xml" href="../public/icons/Pepe.svg" />
     
@@ -17,7 +17,7 @@
   <body class="bg-white p-4" style="font-family: 'Tahoma', sans-serif; background-image: url('../public/images/background.png');">
 
     <!-- Base Window Component -->
-    <base-window title="Paint - Project 1">
+    <base-window title="Paint - Project">
       
       <!-- Menu Left -->
       <div slot="menu-left">
@@ -53,6 +53,10 @@
             <i class="far fa-circle"></i>
           </button>
 
+          <button id="zoom-btn" class="xp-button-tool" title="Zoom">
+            <i class="fas fa-search"></i>
+          </button> 
+
         </div>
       </div>
 
@@ -62,15 +66,32 @@
         <!-- File Panel -->
         <div id="file-panel" class="hidden bg-[#ECE9D8] border-t border-[#808080] px-2 py-2">
           <div class="flex items-center gap-2 text-xs flex-wrap">
-            <button id="save-file-btn" class="xp-button">
+          
+            <label class="flex items-center gap-1">
+              <span>Select type:</span>
+              <select id="param-file-type" class="xp-select">
+                <option value="json">Json</option>
+                <option value="ppm-p3">PPM-P3</option>
+                <option value="ppm-p6">PPM-P6</option>
+                <option value="jpeg">JPEG</option>
+              </select>
+            </label>
+
+            <label id="compression-panel" class="hidden items-center gap-1">
+              Compression:
+              <input type="range" id="compression-slider" min="0" max="100" value="80" class="xp-slider">
+              <span id="compression-value" class="text-xs">80</span>
+            </label>
+
+            <button id="save-file-btn" class="xp-button hidden">
               <i class="fas fa-save mr-1"></i>Save Drawing
             </button>
             
-            <button id="load-file-btn" class="xp-button">
+            <button id="load-file-btn" class="xp-button hidden">
               <i class="fas fa-folder-open mr-1"></i>Load Drawing
             </button>
             
-            <input type="file" id="file-input" accept=".json" class="hidden">
+            <input type="file" id="file-input" accept="" class="hidden">
             
             <button id="close-file-btn" class="xp-button text-red-500 font-bold">
               Close
@@ -155,6 +176,37 @@
           </div>
         </div>
 
+        <!-- Zoom Panel -->
+        <div id="zoom-panel" class="hidden bg-[#ECE9D8] border-t border-[#808080] px-2 py-2">
+          <div class="flex items-center gap-2 text-xs flex-wrap">
+
+            <button id="zoom-in-btn" class="xp-button">+</button>
+            <button id="zoom-out-btn" class="xp-button">--</button>
+            <span id="zoom-value">100%</span>
+            <button id="zoom-reset-btn" class="xp-button">Reset</button>
+
+            <span class="ml-4 font-bold">|</span>
+
+            <label class="flex ml-4 mr-2 items-center gap-1">
+              Pixel Values:
+              <span id="zoom-r-label" class="ml-2">R:
+                <span id="zoom-r-value">0</span>
+              </span>
+              <span id="zoom-g-label" class="ml-2">G:
+                <span id="zoom-g-value">0</span>
+              </span>
+              <span id="zoom-b-label" class="ml-2">B:
+                <span id="zoom-b-value">0</span>
+              </span>
+            </label>
+            
+            <button id="close-zoom-btn" class="xp-button text-red-500 font-bold">
+              Close
+            </button>
+
+          </div>
+        </div>
+
       </div>
 
     </base-window>
@@ -163,6 +215,6 @@
     <modal-window></modal-window>
 
     <!-- Logic -->
-    <script type="module" src="../src/projects/project-1.ts"></script>
+    <script type="module" src="../src/projects/project.ts"></script>
   </body>
 </html>

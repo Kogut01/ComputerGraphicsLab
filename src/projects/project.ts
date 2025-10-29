@@ -40,6 +40,7 @@ const panels = {
   drawParams: document.getElementById('draw-params-panel') as HTMLDivElement,
   file: document.getElementById('file-panel') as HTMLDivElement,
   editShape: document.getElementById('edit-shape-panel') as HTMLDivElement,
+  zoom: document.getElementById('zoom-panel') as HTMLDivElement,
 };
 
 // Initialize managers
@@ -61,6 +62,10 @@ new InteractionManager(
 document.getElementById('clear-btn')?.addEventListener('click', () => {
   handleClearWorkspace(() => {
     drawingManager.clear();
+    drawingManager.clearBackgroundImage();
+    drawingManager.redraw();
+    drawingManager.setZoom(1.0);
+    drawingManager.resetPan();
     uiController.hideAllPanels();
     statusText.textContent = 'Workspace cleared';
   });
@@ -70,7 +75,7 @@ document.getElementById('start-page-btn')?.addEventListener('click', handleStart
 
 document.getElementById('help-btn')?.addEventListener('click', () => {
   showModal({
-    title: 'Project 1 - Help',
+    title: 'Project - Help',
     content: `
       <div class="space-y-3 text-xs">
         <div>

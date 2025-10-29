@@ -1,4 +1,3 @@
-// Modal import
 import { showModal } from './ModalManager';
 
 // Shows device warning overlay

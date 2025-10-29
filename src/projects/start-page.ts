@@ -1,4 +1,3 @@
-// Imports
 import '../styles/00-main.css';
 import '../components/BaseModal';
 import { initializeWindowControls } from '../core/WindowControls';
@@ -16,7 +15,7 @@ openProjectButton.addEventListener('click', () => {
   // Map of project routes
   const projectRoutes: { [key: string]: string } = {
     'start-page': './start-page.html',
-    'project1': './project-1.html',
+    'project': './project.html',
   };
 
   window.location.href = projectRoutes[selectedProject];

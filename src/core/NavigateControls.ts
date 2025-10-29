@@ -1,4 +1,3 @@
-// Modal import
 import { showModal } from './ModalManager';
 
 // Clear workspace action
