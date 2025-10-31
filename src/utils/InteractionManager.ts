@@ -1,7 +1,7 @@
 import { DrawingManager } from './DrawingManager';
 import { ToolManager } from './ToolManager';
 import { UIController } from './UIController';
-import { type ShapeType, ShapeFactory, Brush } from './shapes/Import';
+import { type ShapeType, ShapeFactory, Brush, RGBCube } from './shapes/Import';
 
 export class InteractionManager {
   private canvas: HTMLCanvasElement;
@@ -24,6 +24,8 @@ export class InteractionManager {
   private dragStartX = 0;
   private dragStartY = 0;
   private currentBrushPoints: { x: number; y: number }[] = [];
+  private previewCube: RGBCube | null = null;
+  private previewAnimationFrame: number | null = null;
   
   constructor(
     canvas: HTMLCanvasElement,
@@ -74,6 +76,10 @@ export class InteractionManager {
     const currentTool = this.toolManager.getCurrentTool();
     if (!currentTool) return;
 
+    if (currentTool === 'rgbcube') {
+      this.statusText.textContent = 'Kliknij i przeciągnij, aby narysować kostkę RGB.';
+    }
+
     if (e.button === 0 && e.shiftKey) {
       this.isPanning = true;
       this.lastPanX = e.clientX;
@@ -84,28 +90,32 @@ export class InteractionManager {
     }
     
     const pos = this.getWorldFromEvent(e);
-    
     if (currentTool === 'select') {
       const wasSelected = this.drawingManager.selectShapeAt(pos.x, pos.y);
-      
       if (wasSelected) {
-        const shape = this.drawingManager.getSelectedShape()!;
+        const shape = this.drawingManager.getSelectedShape();
         this.isDragging = true;
         this.dragStartX = pos.x;
         this.dragStartY = pos.y;
-        this.statusText.textContent = `Selected ${shape.getType()}`;
+        this.statusText.textContent = `Selected ${shape?.getType?.()}`;
         this.drawingManager.redraw();
-        
-        if (shape.getType() !== 'brush') {
+        // Ukryj wszystkie panele po zaznaczeniu kostki RGB
+        if (shape && shape.getType() === 'rgbcube') {
+          this.uiController.hideAllPanels();
+          this.uiController.showRotateCubePanel(shape);
+        } else if (shape && shape.getType() !== 'brush') {
           this.uiController.hideAllPanels();
           document.getElementById('edit-shape-panel')?.classList.remove('hidden');
           this.uiController.updateEditPanel();
+          this.uiController.hideRotateCubePanel();
         } else {
           this.uiController.hideAllPanels();
-          this.statusText.textContent = `Selected ${shape.getType()} (cannot edit)`;
+          this.uiController.hideRotateCubePanel();
+          this.statusText.textContent = `Selected ${shape?.getType?.()} (cannot edit)`;
         }
       } else {
         this.uiController.hideAllPanels();
+        this.uiController.hideRotateCubePanel();
         this.statusText.textContent = 'No shape selected';
         this.drawingManager.redraw();
       }
@@ -158,14 +168,21 @@ export class InteractionManager {
       this.canvas.style.cursor = 'move';
       const deltaX = world.x - this.dragStartX;
       const deltaY = world.y - this.dragStartY;
-      this.drawingManager.moveSelectedShape(deltaX, deltaY);
+      // Przesuwanie kostki RGB
+      const selectedShape = this.drawingManager.getSelectedShape();
+      if (selectedShape && selectedShape.getType() === 'rgbcube') {
+        selectedShape.move(deltaX, deltaY);
+        this.uiController.showRotateCubePanel(selectedShape);
+      } else {
+        this.drawingManager.moveSelectedShape(deltaX, deltaY);
+        if (!document.getElementById('edit-shape-panel')?.classList.contains('hidden')) {
+          this.uiController.updateEditPanel();
+        }
+        this.uiController.hideRotateCubePanel();
+      }
       this.dragStartX = world.x;
       this.dragStartY = world.y;
       this.drawingManager.redraw();
-      
-      if (!document.getElementById('edit-shape-panel')?.classList.contains('hidden')) {
-        this.uiController.updateEditPanel();
-      }
       return;
     }
     
@@ -187,7 +204,8 @@ export class InteractionManager {
       this.ctx.translate(panX, panY);
       this.ctx.scale(zoom, zoom);
 
-      this.ctx.strokeStyle = '#000000';
+      const currentColor = this.uiController.getCurrentColor();
+      this.ctx.strokeStyle = currentColor;
       this.ctx.lineWidth = 2 / zoom; 
       this.ctx.lineCap = 'round';
 
@@ -215,6 +233,12 @@ export class InteractionManager {
         this.ctx.beginPath();
         this.ctx.arc(this.startX, this.startY, radius, 0, 2 * Math.PI);
         this.ctx.stroke();
+      } else if (currentTool === 'rgbcube') {
+        const size = Math.max(Math.abs(world.x - this.startX), Math.abs(world.y - this.startY), 50);
+        this.previewCube = new RGBCube(this.startX, this.startY, size);
+        this.drawingManager.redraw();
+        this.previewCube.draw(this.ctx);
+        this.statusText.textContent = `Podgląd kostki RGB: rozmiar ${Math.round(size)}px`;
       }
 
       this.ctx.restore();
@@ -251,18 +275,24 @@ export class InteractionManager {
 
     if (this.isDrawing) {
       const pos = this.getWorldFromEvent(e);
-      
-      if (currentTool === 'brush' && this.currentBrushPoints.length > 0) {
+      const currentColor = this.uiController.getCurrentColor();
+      if (currentTool === 'rgbcube' && this.previewCube) {
+        this.previewCube.color = currentColor;
+        this.drawingManager.addShape(this.previewCube);
+        this.statusText.textContent = 'Kostka RGB została dodana.';
+        this.previewCube = null;
+      } else if (currentTool === 'brush' && this.currentBrushPoints.length > 0) {
         const brush = new Brush(this.currentBrushPoints[0].x, this.currentBrushPoints[0].y);
+        brush.color = currentColor;
         for (let i = 1; i < this.currentBrushPoints.length; i++) {
           brush.addPoint(this.currentBrushPoints[i].x, this.currentBrushPoints[i].y);
         }
         this.drawingManager.addShape(brush);
         this.currentBrushPoints = [];
       } else if (currentTool !== 'brush' && currentTool !== 'select') {
-        this.drawingManager.addShape(
-          ShapeFactory.createShape(currentTool as ShapeType, this.startX, this.startY, pos.x, pos.y)
-        );
+        const shape = ShapeFactory.createShape(currentTool as ShapeType, this.startX, this.startY, pos.x, pos.y);
+        shape.color = currentColor;
+        this.drawingManager.addShape(shape);
       }
       
       this.drawingManager.redraw();
@@ -277,5 +307,11 @@ export class InteractionManager {
     this.canvas.style.cursor = 'default';
     this.currentBrushPoints = [];
     this.cursorPosition.textContent = '0, 0';
+
+    if (this.previewAnimationFrame) {
+      cancelAnimationFrame(this.previewAnimationFrame);
+      this.previewAnimationFrame = null;
+    }
+    this.previewCube = null;
   }
 }

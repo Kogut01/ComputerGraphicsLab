@@ -4,9 +4,10 @@ import { Line } from './Line';
 import { Rectangle } from './Rectangle';
 import { Circle } from './Circle';
 import { Brush } from './Brush';
+import { RGBCube } from './RGBCube';
 
 // Shape types
-export type ShapeType = 'line' | 'rectangle' | 'circle' | 'brush';
+export type ShapeType = 'line' | 'rectangle' | 'circle' | 'brush' | 'rgbcube';
 
 // Shape factory
 export class ShapeFactory {
@@ -22,6 +23,11 @@ export class ShapeFactory {
       }
       case 'brush':
         return new Brush(x1, y1);
+      case 'rgbcube': {
+        // Center of cube at click position, size based on drag distance
+        const size = Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1), 50);
+        return new RGBCube(x1, y1, size);
+      }
       default:
         throw new Error(`Unknown shape type: ${type}`);
     }

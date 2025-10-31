@@ -73,8 +73,8 @@
   background-color: white;
   border-width: 2px;
   border-style: solid;
-  border-top-color: #7F9DB9;
-  border-left-color: #7F9DB9;
+  border-top-color: #404040;
+  border-left-color: #404040;
   border-right-color: white;
   border-bottom-color: white;
   font-size: 0.75rem;
@@ -100,8 +100,8 @@
   background-color: white;
   border-width: 2px;
   border-style: solid;
-  border-top-color: #7F9DB9;
-  border-left-color: #7F9DB9;
+  border-top-color: #404044;
+  border-left-color: #404040;
   border-right-color: white;
   border-bottom-color: white;
   font-size: 0.75rem;
@@ -149,3 +149,53 @@
   cursor: pointer;
 }
 
+/* Checkbox (no animation) */
+.xp-checkbox {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1rem;
+  height: 1rem;
+  display: inline-block;
+  vertical-align: middle;
+  background: linear-gradient(to bottom, #ffffff, #ECE9D8);
+  border-width: 2px;
+  border-style: solid;
+  border-top-color: #404040;
+  border-left-color: #404040;
+  border-right-color: #ffffff;
+  border-bottom-color: #ffffff;
+  cursor: pointer;
+  position: relative;
+  filter: brightness(0.95);
+}
+
+.xp-checkbox:hover {
+  filter: brightness(1.05);
+}
+
+/* Check mark */
+.xp-checkbox::after {
+  content: "";
+  position: absolute;
+  left: 0.28rem;
+  top: 0.05rem;
+  width: 0.32rem;
+  height: 0.6rem;
+  border: solid #0b4a8b;
+  border-width: 0 0.18rem 0.18rem 0;
+  transform: rotate(45deg);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.xp-checkbox:checked {
+  background: linear-gradient(to bottom, #CDE3FF, #9EBEE6);
+  border-top-color: #404040;
+  border-left-color: #404040;
+  border-right-color: #ffffff;
+  border-bottom-color: #ffffff;
+}
+
+.xp-checkbox:checked::after {
+  opacity: 1;
+}

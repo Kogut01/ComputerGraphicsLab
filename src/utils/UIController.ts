@@ -8,12 +8,14 @@ export class UIController {
     file: HTMLElement;
     editShape: HTMLElement;
     zoom: HTMLElement;
+    colorPicker: HTMLElement;
+    rotateCube: HTMLElement;
   };
   private drawingManager: DrawingManager;
   private statusText: HTMLElement;
   
   constructor(
-    panels: { drawParams: HTMLElement; file: HTMLElement; editShape: HTMLElement; zoom: HTMLElement },
+    panels: { drawParams: HTMLElement; file: HTMLElement; editShape: HTMLElement; zoom: HTMLElement, colorPicker: HTMLElement, rotateCube: HTMLElement },
     drawingManager: DrawingManager,
     statusText: HTMLElement
   ) {
@@ -22,15 +24,22 @@ export class UIController {
     this.statusText = statusText;
     this.initializePanelButtons();
     this.handleFileTypeChange();
+    this.handleColorPickerChange();
+    this.updateZoomDisplay();
+    this.updateColorPickerDisplays();
   }
-  
-  // Panel buttons acctions
-   private initializePanelButtons(): void {
+
+  // Panel buttons actions
+  private initializePanelButtons(): void {
     document.getElementById('draw-params-btn')?.addEventListener('click', () => {
       this.panels.drawParams.classList.toggle('hidden');
       this.panels.file.classList.add('hidden');
       this.panels.editShape.classList.add('hidden');
       this.panels.zoom.classList.add('hidden');
+      this.panels.colorPicker.classList.add('hidden');
+      this.panels.rotateCube.classList.add('hidden');
+
+      this.statusText.textContent = `Draw Parameters Panel opened`;
     });
     
     document.getElementById('close-params-btn')?.addEventListener('click', () => {
@@ -42,6 +51,10 @@ export class UIController {
       this.panels.drawParams.classList.add('hidden');
       this.panels.editShape.classList.add('hidden');
       this.panels.zoom.classList.add('hidden');
+      this.panels.colorPicker.classList.add('hidden');
+      this.panels.rotateCube.classList.add('hidden');
+
+      this.statusText.textContent = `File Panel opened`;
     });
     
     document.getElementById('close-file-btn')?.addEventListener('click', () => {
@@ -59,6 +72,8 @@ export class UIController {
       this.panels.drawParams.classList.add('hidden');
       this.panels.file.classList.add('hidden');
       this.panels.editShape.classList.add('hidden');
+      this.panels.colorPicker.classList.add('hidden');
+      this.panels.rotateCube.classList.add('hidden');
 
       this.statusText.textContent = `Zoom: Hold Shift and drag to pan`;
       this.updateZoomDisplay();
@@ -92,6 +107,21 @@ export class UIController {
       if (canvas) canvas.style.cursor = 'default';
     }); 
 
+    document.getElementById('color-picker-btn')?.addEventListener('click', () => {
+      this.panels.colorPicker.classList.toggle('hidden');
+      this.panels.drawParams.classList.add('hidden');
+      this.panels.file.classList.add('hidden');
+      this.panels.editShape.classList.add('hidden');
+      this.panels.zoom.classList.add('hidden');
+      this.panels.rotateCube.classList.add('hidden');
+
+      this.statusText.textContent = `Color Picker opened`;
+    });
+
+    document.getElementById('close-color-picker-btn')?.addEventListener('click', () => {
+      this.panels.colorPicker.classList.add('hidden');
+    });
+
     document.getElementById('draw-shape-btn')?.addEventListener('click', () => this.handleDrawShapeFromParams());
     document.getElementById('update-shape-btn')?.addEventListener('click', () => this.handleUpdateShapeFromParams());
     
@@ -115,7 +145,12 @@ export class UIController {
       compressionSlider.addEventListener('input', updateCompressionDisplay);
     }
 
-    this.updateZoomDisplay();
+    const colorPickerCheckbox = document.getElementById('color-picker-checkbox') as HTMLInputElement | null;
+    colorPickerCheckbox?.addEventListener('change', () => this.handleColorPickerChange());
+
+    const colorPickerSelect = document.getElementById('color-style-select') as HTMLSelectElement | null;
+    colorPickerSelect?.addEventListener('change', () => this.handleColorPickerChange());
+
   }
 
   // Update zoom display
@@ -124,6 +159,191 @@ export class UIController {
     if (zoomValue) {
       const zoom = Math.round(this.drawingManager.getZoom() * 100);
       zoomValue.textContent = `${zoom}%`;
+    }
+  }
+
+  private updateColorPickerDisplays(): void {
+    const rSlider = document.getElementById('color-r-slider') as HTMLInputElement | null;
+    const gSlider = document.getElementById('color-g-slider') as HTMLInputElement | null;
+    const bSlider = document.getElementById('color-b-slider') as HTMLInputElement | null;
+    const cSlider = document.getElementById('color-c-slider') as HTMLInputElement | null;
+    const mSlider = document.getElementById('color-m-slider') as HTMLInputElement | null;
+    const ySlider = document.getElementById('color-y-slider') as HTMLInputElement | null;
+    const kSlider = document.getElementById('color-k-slider') as HTMLInputElement | null;
+
+    const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
+
+    // Conversion helpers: RGB <-> CMYK (0-255 scale)
+    const rgbToCmyk = (r: number, g: number, b: number) => {
+      const rNorm = r / 255;
+      const gNorm = g / 255;
+      const bNorm = b / 255;
+      
+      const k = 1 - Math.max(rNorm, gNorm, bNorm);
+      
+      if (k >= 1) {
+        return { c: 0, m: 0, y: 0, k: 255 };
+      }
+      
+      const c = (1 - rNorm - k) / (1 - k);
+      const m = (1 - gNorm - k) / (1 - k);
+      const y = (1 - bNorm - k) / (1 - k);
+      
+      return {
+        c: Math.round(c * 255),
+        m: Math.round(m * 255),
+        y: Math.round(y * 255),
+        k: Math.round(k * 255)
+      };
+    };
+
+    const cmykToRgb = (c: number, m: number, y: number, k: number) => {
+      const cNorm = c / 255;
+      const mNorm = m / 255;
+      const yNorm = y / 255;
+      const kNorm = k / 255;
+      
+      const r = 255 * (1 - cNorm) * (1 - kNorm);
+      const g = 255 * (1 - mNorm) * (1 - kNorm);
+      const b = 255 * (1 - yNorm) * (1 - kNorm);
+      
+      return {
+        r: Math.round(r),
+        g: Math.round(g),
+        b: Math.round(b)
+      };
+    };
+
+    // Update preview swatch
+    const setPreview = (r: number, g: number, b: number) => {
+      const preview = document.getElementById('color-preview') as HTMLElement | null;
+      
+      if (preview) {
+        const hex = `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase()}`;
+        preview.style.backgroundColor = hex;
+      }
+    };
+
+    // When RGB changes, update CMYK and preview
+    const updateFromRGB = () => {
+      const r = clamp(parseInt(rSlider?.value ?? '0', 10));
+      const g = clamp(parseInt(gSlider?.value ?? '0', 10));
+      const b = clamp(parseInt(bSlider?.value ?? '0', 10));
+      
+      const { c, m, y, k } = rgbToCmyk(r, g, b);
+
+      // Update CMYK sliders
+      if (cSlider) cSlider.value = String(c);
+      if (mSlider) mSlider.value = String(m);
+      if (ySlider) ySlider.value = String(y);
+      if (kSlider) kSlider.value = String(k);
+
+      // Update CMYK displays
+      const cDisplay = document.getElementById('color-c-slider-value');
+      const mDisplay = document.getElementById('color-m-slider-value');
+      const yDisplay = document.getElementById('color-y-slider-value');
+      const kDisplay = document.getElementById('color-k-slider-value');
+      if (cDisplay) cDisplay.textContent = String(c);
+      if (mDisplay) mDisplay.textContent = String(m);
+      if (yDisplay) yDisplay.textContent = String(y);
+      if (kDisplay) kDisplay.textContent = String(k);
+
+      // Update CMYK inputs
+      const cInput = document.getElementById('color-c-input') as HTMLInputElement | null;
+      const mInput = document.getElementById('color-m-input') as HTMLInputElement | null;
+      const yInput = document.getElementById('color-y-input') as HTMLInputElement | null;
+      const kInput = document.getElementById('color-k-input') as HTMLInputElement | null;
+      if (cInput) cInput.value = String(c);
+      if (mInput) mInput.value = String(m);
+      if (yInput) yInput.value = String(y);
+      if (kInput) kInput.value = String(k);
+
+      setPreview(r, g, b);
+    };
+
+    // When CMYK changes, update RGB and preview
+    const updateFromCMYK = () => {
+      const c = clamp(parseInt(cSlider?.value ?? '0', 10));
+      const m = clamp(parseInt(mSlider?.value ?? '0', 10));
+      const y = clamp(parseInt(ySlider?.value ?? '0', 10));
+      const k = clamp(parseInt(kSlider?.value ?? '0', 10));
+      
+      const { r, g, b } = cmykToRgb(c, m, y, k);
+
+      // Update RGB sliders
+      if (rSlider) rSlider.value = String(r);
+      if (gSlider) gSlider.value = String(g);
+      if (bSlider) bSlider.value = String(b);
+
+      // Update RGB displays
+      const rDisplay = document.getElementById('color-r-slider-value');
+      const gDisplay = document.getElementById('color-g-slider-value');
+      const bDisplay = document.getElementById('color-b-slider-value');
+      if (rDisplay) rDisplay.textContent = String(r);
+      if (gDisplay) gDisplay.textContent = String(g);
+      if (bDisplay) bDisplay.textContent = String(b);
+
+      // Update RGB inputs
+      const rInput = document.getElementById('color-r-input') as HTMLInputElement | null;
+      const gInput = document.getElementById('color-g-input') as HTMLInputElement | null;
+      const bInput = document.getElementById('color-b-input') as HTMLInputElement | null;
+      if (rInput) rInput.value = String(r);
+      if (gInput) gInput.value = String(g);
+      if (bInput) bInput.value = String(b);
+
+      setPreview(r, g, b);
+    };
+
+    // Helper to bind slider <-> display span and optional number input
+    const bind = (
+      slider: HTMLInputElement | null,
+      displayId: string | null,
+      inputId?: string,
+      onChangeCallback?: () => void
+    ) => {
+      if (!slider || !displayId) return;
+      const display = document.getElementById(displayId) as HTMLElement | null;
+      const numberInput = inputId ? document.getElementById(inputId) as HTMLInputElement | null : null;
+
+      // Initialize
+      if (display) display.textContent = slider.value;
+      if (numberInput) numberInput.value = slider.value;
+
+      // Slider -> display (+ number input) + callback
+      slider.addEventListener('input', () => {
+        const val = clamp(parseInt(slider.value, 10) || 0);
+        slider.value = String(val);
+        if (display) display.textContent = String(val);
+        if (numberInput) numberInput.value = String(val);
+        if (onChangeCallback) onChangeCallback();
+      });
+
+      // Number input -> slider (+ display) + callback
+      if (numberInput) {
+        numberInput.addEventListener('input', () => {
+          let val = clamp(parseInt(numberInput.value, 10) || 0);
+          numberInput.value = String(val);
+          slider.value = String(val);
+          if (display) display.textContent = String(val);
+          if (onChangeCallback) onChangeCallback();
+        });
+      }
+    };
+
+    // Bind RGB controls with RGB->CMYK conversion
+    bind(rSlider, 'color-r-slider-value', 'color-r-input', updateFromRGB);
+    bind(gSlider, 'color-g-slider-value', 'color-g-input', updateFromRGB);
+    bind(bSlider, 'color-b-slider-value', 'color-b-input', updateFromRGB);
+
+    // Bind CMYK controls with CMYK->RGB conversion
+    bind(cSlider, 'color-c-slider-value', 'color-c-input', updateFromCMYK);
+    bind(mSlider, 'color-m-slider-value', 'color-m-input', updateFromCMYK);
+    bind(ySlider, 'color-y-slider-value', 'color-y-input', updateFromCMYK);
+    bind(kSlider, 'color-k-slider-value', 'color-k-input', updateFromCMYK);
+
+    // Initialize preview with current RGB values
+    if (rSlider && gSlider && bSlider) {
+      updateFromRGB();
     }
   }
 
@@ -142,6 +362,25 @@ export class UIController {
 
   public hideAllPanels(): void {
     Object.values(this.panels).forEach(panel => panel.classList.add('hidden'));
+  }
+
+  // Get current selected color from color picker
+  public getCurrentColor(): string {
+    const rSlider = document.getElementById('color-r-slider') as HTMLInputElement | null;
+    const gSlider = document.getElementById('color-g-slider') as HTMLInputElement | null;
+    const bSlider = document.getElementById('color-b-slider') as HTMLInputElement | null;
+
+    if (rSlider && gSlider && bSlider) {
+      const r = parseInt(rSlider.value, 10) || 0;
+      const g = parseInt(gSlider.value, 10) || 0;
+      const b = parseInt(bSlider.value, 10) || 0;
+      
+      // Convert to hex color
+      const hex = `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase()}`;
+      return hex;
+    }
+
+    return '#000000'; // Default black
   }
   
   public updateEditPanel(): void {
@@ -187,7 +426,8 @@ export class UIController {
     const x2 = parseFloat((document.getElementById('param-x2') as HTMLInputElement).value) || 100;
     const y2 = parseFloat((document.getElementById('param-y2') as HTMLInputElement).value) || 100;
 
-    this.drawingManager.addShape(this.drawingManager.createShape(shapeType, x1, y1, x2, y2));
+    const currentColor = this.getCurrentColor();
+    this.drawingManager.addShape(this.drawingManager.createShape(shapeType, x1, y1, x2, y2, currentColor));
     this.drawingManager.redraw();
     this.statusText.textContent = `${shapeType.charAt(0).toUpperCase() + shapeType.slice(1)} drawn`;
   }
@@ -230,6 +470,37 @@ export class UIController {
       fileInput.accept = '.ppm';
     } else {
       fileInput.accept = '.jpg,.jpeg';
+    }
+  }
+
+  private handleColorPickerChange(): void {
+    const checkboxEl = document.getElementById('color-picker-checkbox') as HTMLInputElement | null;
+    const isTextMode = !!checkboxEl?.checked;
+    const selectEl = document.getElementById('color-style-select') as HTMLSelectElement | null;
+    const mode = selectEl?.value ?? 'color-style-rgb';
+
+    // Helper to hide all color panels
+    const hideAll = () => {
+      document.getElementById('color-rgb-slider-label')?.classList.add('hidden');
+      document.getElementById('color-rgb-text-label')?.classList.add('hidden');
+      document.getElementById('color-cmyk-slider-label')?.classList.add('hidden');
+      document.getElementById('color-cmyk-text-label')?.classList.add('hidden');
+    };
+
+    hideAll();
+
+    if (mode === 'color-style-rgb') {
+      if (isTextMode) {
+        document.getElementById('color-rgb-text-label')?.classList.remove('hidden');
+      } else {
+        document.getElementById('color-rgb-slider-label')?.classList.remove('hidden');
+      }
+    } else if (mode === 'color-style-cmyk') {
+      if (isTextMode) {
+        document.getElementById('color-cmyk-text-label')?.classList.remove('hidden');
+      } else {
+        document.getElementById('color-cmyk-slider-label')?.classList.remove('hidden');
+      }
     }
   }
 
@@ -384,5 +655,23 @@ export class UIController {
     } else {
       this.statusText.textContent = 'Unsupported file type';
     }
+  }
+
+  showRotateCubePanel(cube: any) {
+    this.panels.rotateCube.classList.remove('hidden');
+    const xSlider = document.getElementById('rotate-x-slider') as HTMLInputElement | null;
+    const ySlider = document.getElementById('rotate-y-slider') as HTMLInputElement | null;
+    const xValue = document.getElementById('rotate-x-value') as HTMLElement | null;
+    const yValue = document.getElementById('rotate-y-value') as HTMLElement | null;
+    if (xSlider && ySlider && xValue && yValue && cube && cube.getRotation) {
+      xSlider.value = Math.round(cube.getRotation().x).toString();
+      ySlider.value = Math.round(cube.getRotation().y).toString();
+      xValue.textContent = `${Math.round(cube.getRotation().x)}°`;
+      yValue.textContent = `${Math.round(cube.getRotation().y)}°`;
+    }
+  }
+
+  hideRotateCubePanel() {
+    this.panels.rotateCube.classList.add('hidden');
   }
 }

@@ -11,6 +11,7 @@ import { DrawingManager } from '../utils/DrawingManager';
 import { ToolManager } from '../utils/ToolManager';
 import { UIController } from '../utils/UIController';
 import { InteractionManager } from '../utils/InteractionManager';
+import { RGBCube } from '../utils/shapes/RGBCube';
 
 // Initialize core components
 initializeWindowControls();
@@ -33,6 +34,7 @@ const toolButtons = {
   line: document.getElementById('tool-line') as HTMLButtonElement,
   rectangle: document.getElementById('tool-rectangle') as HTMLButtonElement,
   circle: document.getElementById('tool-circle') as HTMLButtonElement,
+  rgbcube: document.getElementById('tool-rgb-cube') as HTMLButtonElement,
 };
 
 // Panels
@@ -41,6 +43,8 @@ const panels = {
   file: document.getElementById('file-panel') as HTMLDivElement,
   editShape: document.getElementById('edit-shape-panel') as HTMLDivElement,
   zoom: document.getElementById('zoom-panel') as HTMLDivElement,
+  colorPicker: document.getElementById('color-picker-panel') as HTMLDivElement,
+  rotateCube: document.getElementById('rotate-cube-panel') as HTMLDivElement,
 };
 
 // Initialize managers
@@ -127,3 +131,66 @@ document.getElementById('help-btn')?.addEventListener('click', () => {
 // Initialize default state
 statusText.textContent = 'For help, click Help Topics on the Help menu.';
 canvasManager.setCursor('default');
+
+// Obsługa panelu Rotate Cube
+function showRotateCubePanel(cube: RGBCube) {
+  panels.rotateCube.classList.remove('hidden');
+  const xSlider = document.getElementById('rotate-x-slider') as HTMLInputElement | null;
+  const ySlider = document.getElementById('rotate-y-slider') as HTMLInputElement | null;
+  const xValue = document.getElementById('rotate-x-value') as HTMLElement | null;
+  const yValue = document.getElementById('rotate-y-value') as HTMLElement | null;
+  if (xSlider && ySlider && xValue && yValue) {
+    xSlider.value = Math.round(cube.getRotation().x).toString();
+    ySlider.value = Math.round(cube.getRotation().y).toString();
+    xValue.textContent = `${Math.round(cube.getRotation().x)}°`;
+    yValue.textContent = `${Math.round(cube.getRotation().y)}°`;
+  }
+}
+
+function hideRotateCubePanel() {
+  panels.rotateCube.classList.add('hidden');
+}
+
+document.getElementById('close-rotate-cube-btn')?.addEventListener('click', hideRotateCubePanel);
+
+document.getElementById('rotate-x-slider')?.addEventListener('input', (e) => {
+  const val = parseInt((e.target as HTMLInputElement).value);
+  const xValue = document.getElementById('rotate-x-value') as HTMLElement | null;
+  if (xValue) xValue.textContent = `${val}°`;
+  const selected = drawingManager.getSelectedShape();
+  if (selected && selected.getType && selected.getType() === 'rgbcube') {
+    const cube = selected as RGBCube;
+    cube.setRotation(val, cube.getRotation().y, 0);
+    drawingManager.redraw();
+  }
+});
+document.getElementById('rotate-y-slider')?.addEventListener('input', (e) => {
+  const val = parseInt((e.target as HTMLInputElement).value);
+  const yValue = document.getElementById('rotate-y-value') as HTMLElement | null;
+  if (yValue) yValue.textContent = `${val}°`;
+  const selected = drawingManager.getSelectedShape();
+  if (selected && selected.getType && selected.getType() === 'rgbcube') {
+    const cube = selected as RGBCube;
+    cube.setRotation(cube.getRotation().x, val, 0);
+    drawingManager.redraw();
+  }
+});
+
+// Otwieraj panel rotate-cube-panel po zaznaczeniu kostki RGB
+const origSelectShapeAt = drawingManager.selectShapeAt.bind(drawingManager);
+drawingManager.selectShapeAt = function(x, y) {
+  const result = origSelectShapeAt(x, y);
+  const selected = this.getSelectedShape();
+  if (selected && selected.getType && selected.getType() === 'rgbcube') {
+    showRotateCubePanel(selected as RGBCube);
+  } else {
+    hideRotateCubePanel();
+  }
+  return result;
+};
+
+window.addEventListener('show-rotate-cube-panel', (e) => {
+  const customEvent = e as CustomEvent;
+  const cube = customEvent.detail as RGBCube;
+  showRotateCubePanel(cube);
+});

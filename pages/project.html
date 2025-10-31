@@ -27,6 +27,9 @@
         <button id="draw-params-btn" class="xp-button">
           Draw Parameters
         </button>
+        <button id="color-picker-btn" class="xp-button">
+          Color Picker
+        </button>
       </div>
 
       <!-- Toolbox -->
@@ -56,6 +59,10 @@
           <button id="zoom-btn" class="xp-button-tool" title="Zoom">
             <i class="fas fa-search"></i>
           </button> 
+
+          <button id="tool-rgb-cube" class="xp-button-tool" title="Color Picker">
+            <i class="fas fa-cube"></i>
+          </button>
 
         </div>
       </div>
@@ -206,6 +213,108 @@
 
           </div>
         </div>
+
+        <!-- Color Picker Panel  -->
+        <div id="color-picker-panel" class="hidden bg-[#ECE9D8] border-t border-[#808080] px-2 py-2">
+          <div class="flex items-center gap-2 text-xs flex-wrap">
+            
+            <label class="flex items-center gap-1">
+              <span>Choose Color:</span>
+              <select id="color-style-select" class="xp-select">
+                <option value="color-style-rgb">RGB</option>
+                <option value="color-style-cmyk">CMYK</option>
+              </select>
+
+              <input type="checkbox" id="color-picker-checkbox" class="xp-checkbox ml-4">
+              <span>Text</span>
+            </label>
+
+            <span class="font-bold ml-4">|</span>
+
+            <label id="color-rgb-slider-label" class="hidden flex items-center gap-1 ml-4">
+              <span>R:</span>
+              <input type="range" id="color-r-slider" min="0" max="255" value="0" class="xp-slider w-24">
+              <span id="color-r-slider-value" class="w-6 text-xs">0</span>
+
+              <span>G:</span>
+              <input type="range" id="color-g-slider" min="0" max="255" value="0" class="xp-slider w-24">
+              <span id="color-g-slider-value" class="w-6 text-xs">0</span>
+
+              <span>B:</span>
+              <input type="range" id="color-b-slider" min="0" max="255" value="0" class="xp-slider w-24">
+              <span id="color-b-slider-value" class="w-6 text-xs">0</span>
+            </label>
+
+            <label id="color-cmyk-slider-label" class="hidden flex items-center gap-1 ml-4">
+              <span>C:</span>
+              <input type="range" id="color-c-slider" min="0" max="255" value="0" class="xp-slider w-24">
+              <span id="color-c-slider-value" class="w-6 text-xs">0</span>
+
+              <span>M:</span>
+              <input type="range" id="color-m-slider" min="0" max="255" value="0" class="xp-slider w-24">
+              <span id="color-m-slider-value" class="w-6 text-xs">0</span>
+
+              <span>Y:</span>
+              <input type="range" id="color-y-slider" min="0" max="255" value="0" class="xp-slider w-24">
+              <span id="color-y-slider-value" class="w-6 text-xs">0</span>
+              
+              <span>K:</span>
+              <input type="range" id="color-k-slider" min="0" max="255" value="0" class="xp-slider w-24">
+              <span id="color-k-slider-value" class="w-6 text-xs">0</span>
+            </label>
+
+            <label id="color-rgb-text-label" class="hidden flex items-center gap-1 ml-4">
+              <span>R:</span>
+              <input type="number" id="color-r-input" min="0" max="255" value="0" class="xp-input w-16">
+
+              <span>G:</span>
+              <input type="number" id="color-g-input" min="0" max="255" value="0" class="xp-input w-16">
+
+              <span>B:</span>
+              <input type="number" id="color-b-input" min="0" max="255" value="0" class="xp-input w-16">
+            </label>
+
+            <label id="color-cmyk-text-label" class="hidden items-center gap-1 ml-4">
+              <span>C:</span>
+              <input type="number" id="color-c-input" min="0" max="255" value="0" class="xp-input w-16">
+
+              <span>M:</span>
+              <input type="number" id="color-m-input" min="0" max="255" value="0" class="xp-input w-16">
+
+              <span>Y:</span>
+              <input type="number" id="color-y-input" min="0" max="255" value="0" class="xp-input w-16">
+
+              <span>K:</span>
+              <input type="number" id="color-k-input" min="0" max="255" value="0" class="xp-input w-16">
+            </label>
+
+            <div id="color-preview" class="inline-block w-16 h-7 border-2 border-[#404040]" style="background-color: #000000;"></div>
+
+            <button id="close-color-picker-btn" class="xp-button text-red-500 font-bold ml-4">
+              Close
+            </button>
+          </div>
+
+        </div>
+
+        <!-- Rotate Cube Panel -->
+        <div id="rotate-cube-panel" class="hidden bg-[#ECE9D8] border-t border-[#808080] px-2 py-2">
+          <div class="flex items-center gap-2 text-xs flex-wrap">
+            <span class="font-bold">Rotate Cube:</span>
+            <label class="flex items-center gap-1 ml-4">
+              <span>X:</span>
+              <input type="range" id="rotate-x-slider" min="-180" max="180" value="0" class="xp-slider w-24">
+              <span id="rotate-x-value" class="w-8 text-xs">0°</span>
+            </label>
+            <label class="flex items-center gap-1 ml-4">
+              <span>Y:</span>
+              <input type="range" id="rotate-y-slider" min="-180" max="180" value="0" class="xp-slider w-24">
+              <span id="rotate-y-value" class="w-8 text-xs">0°</span>
+            </label>
+            <button id="close-rotate-cube-btn" class="xp-button text-red-500 font-bold ml-4">Close</button>
+          </div>
+        </div>
+        <!-- END Rotate Cube Panel -->
 
       </div>
 

@@ -68,6 +68,7 @@ export class BaseWindow extends HTMLElement {
               id="canvas"
               width="1000"
               height="600"
+              imagerendering="pixelated"
               class="bg-white cursor-crosshair"
               aria-label="Rysunkowe pole robocze"
             ></canvas>

@@ -1,7 +1,7 @@
-import { Shape, ShapeFactory, type ShapeType, Line, Rectangle, Circle, Brush } from './shapes/Import';
+import { Shape, ShapeFactory, type ShapeType, Line, Rectangle, Circle, Brush, RGBCube } from './shapes/Import';
 
 // Tool types
-export type Tool = 'select' | 'brush' | 'line' | 'rectangle' | 'circle';
+export type Tool = 'select' | 'brush' | 'line' | 'rectangle' | 'circle' | 'rgbcube';
 
 export class DrawingManager {
   private shapes: Shape[] = [];
@@ -75,8 +75,12 @@ export class DrawingManager {
     this.shapes.push(shape);
   }
   
-  public createShape(type: ShapeType, x1: number, y1: number, x2: number, y2: number): Shape {
-    return ShapeFactory.createShape(type, x1, y1, x2, y2);
+  public createShape(type: ShapeType, x1: number, y1: number, x2: number, y2: number, color?: string): Shape {
+    const shape = ShapeFactory.createShape(type, x1, y1, x2, y2);
+    if (color) {
+      shape.color = color;
+    }
+    return shape;
   }
   
   public getShapes(): Shape[] {
@@ -186,6 +190,10 @@ export class DrawingManager {
           const brush = shape as Brush;
           return { ...baseData, points: brush.points };
         }
+        case 'rgbcube': {
+          const cube = shape as RGBCube;
+          return cube.toJSON();
+        }
         default:
           return baseData;
       }
@@ -208,6 +216,7 @@ export class DrawingManager {
             for (let i = 1; i < data.points.length; i++) (shape as Brush).addPoint(data.points[i].x, data.points[i].y);
             break;
           }
+          case 'rgbcube': shape = RGBCube.fromJSON(data); break;
         }
         if (shape) {
           shape.color = data.color || '#000000';
