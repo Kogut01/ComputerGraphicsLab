@@ -45,6 +45,8 @@ const panels = {
   zoom: document.getElementById('zoom-panel') as HTMLDivElement,
   colorPicker: document.getElementById('color-picker-panel') as HTMLDivElement,
   rotateCube: document.getElementById('rotate-cube-panel') as HTMLDivElement,
+  imageProcessing: document.getElementById('image-processing-panel') as HTMLDivElement,
+  histogram: document.getElementById('histogram-panel') as HTMLDivElement,
 };
 
 // Initialize managers
@@ -90,6 +92,16 @@ document.getElementById('help-btn')?.addEventListener('click', () => {
             <li><strong>Line</strong> - Draw straight lines</li>
             <li><strong>Rectangle</strong> - Draw rectangles</li>
             <li><strong>Circle</strong> - Draw circles</li>
+            <li><strong>RGB Cube</strong> - Draw interactive 3D RGB color cube</li>
+          </ul>
+        </div>
+        
+        <div>
+          <p class="font-bold mb-1">🎨 RGB Cube:</p>
+          <ul class="list-disc list-inside ml-2">
+            <li>Click and drag to create cube</li>
+            <li>Select cube to rotate and view slices</li>
+            <li>Use slice controls to explore color space</li>
           </ul>
         </div>
         
@@ -101,25 +113,35 @@ document.getElementById('help-btn')?.addEventListener('click', () => {
         </div>
         
         <div>
-          <p class="font-bold mb-1">✏️ Edit Shape:</p>
-          <ul class="list-disc list-inside ml-2">
-            <li>Select a shape to edit its parameters</li>
-            <li>Update coordinates in real-time</li>
-          </ul>
-        </div>
-        
-        <div>
           <p class="font-bold mb-1">💾 File Operations:</p>
           <ul class="list-disc list-inside ml-2">
-            <li><strong>Save</strong> - Export drawing to JSON file</li>
-            <li><strong>Load</strong> - Import drawing from JSON file</li>
+            <li><strong>Save</strong> - Export to JSON or JPEG</li>
+            <li><strong>Load</strong> - Import from JSON, PPM-P3, PPM-P6, or JPEG files</li>
+            <li><strong>JPEG</strong> - Adjustable compression quality (0-100)</li>
           </ul>
         </div>
         
         <div>
-          <p class="font-bold mb-1">🗑️ Clear Workspace:</p>
+          <p class="font-bold mb-1">🖼️ Image Processing:</p>
           <ul class="list-disc list-inside ml-2">
-            <li>Remove all shapes from canvas</li>
+            <li><strong>Point Operations</strong> - Add, subtract, multiply, divide RGB values</li>
+            <li><strong>Brightness</strong> - Adjust image brightness (-255 to +255)</li>
+            <li><strong>Grayscale</strong> - Convert to grayscale (Average, Luminance, Desaturation)</li>
+            <li><strong>Filters</strong> - Smoothing, Median, Sobel Edge, Sharpen, Gaussian Blur</li>
+            <li><strong>Reset</strong> - Return to original image anytime</li>
+          </ul>
+        </div>
+        
+        <div>
+          <p class="font-bold mb-1">📊 Histogram & Binarization:</p>
+          <ul class="list-disc list-inside ml-2">
+            <li><strong>Histogram</strong> - View RGB channel distribution</li>
+            <li><strong>Stretch</strong> - Enhance contrast by stretching histogram</li>
+            <li><strong>Equalize</strong> - Improve distribution for better contrast</li>
+            <li><strong>Binarization</strong> - Convert to black & white:</li>
+            <li class="ml-4">• Manual Threshold - Set custom threshold (0-255)</li>
+            <li class="ml-4">• Percent Black - Auto threshold by % of black pixels</li>
+            <li class="ml-4">• Mean Iterative - Automatic optimal threshold</li>
           </ul>
         </div>
       </div>
@@ -132,31 +154,61 @@ document.getElementById('help-btn')?.addEventListener('click', () => {
 statusText.textContent = 'For help, click Help Topics on the Help menu.';
 canvasManager.setCursor('default');
 
-// Obsługa panelu Rotate Cube
+// Current selected cube reference
+let currentCube: RGBCube | null = null;
+
+// Obsługa panelu Rotate Cube z przekrojem
 function showRotateCubePanel(cube: RGBCube) {
+  currentCube = cube;
   panels.rotateCube.classList.remove('hidden');
+  
   const xSlider = document.getElementById('rotate-x-slider') as HTMLInputElement | null;
   const ySlider = document.getElementById('rotate-y-slider') as HTMLInputElement | null;
   const xValue = document.getElementById('rotate-x-value') as HTMLElement | null;
   const yValue = document.getElementById('rotate-y-value') as HTMLElement | null;
+  
+  const sliceAxisSelect = document.getElementById('slice-axis-select') as HTMLSelectElement | null;
+  const slicePositionSlider = document.getElementById('slice-position-slider') as HTMLInputElement | null;
+  const slicePositionValue = document.getElementById('slice-position-value') as HTMLElement | null;
+  
   if (xSlider && ySlider && xValue && yValue) {
     xSlider.value = Math.round(cube.getRotation().x).toString();
     ySlider.value = Math.round(cube.getRotation().y).toString();
     xValue.textContent = `${Math.round(cube.getRotation().x)}°`;
     yValue.textContent = `${Math.round(cube.getRotation().y)}°`;
   }
+  
+  if (sliceAxisSelect && slicePositionSlider && slicePositionValue) {
+    sliceAxisSelect.value = cube.getSliceAxis();
+    slicePositionSlider.value = Math.round(cube.getSlicePosition() * 100).toString();
+    slicePositionValue.textContent = `${Math.round(cube.getSlicePosition() * 100)}%`;
+  }
+  
+  updateSlicePreview();
 }
 
 function hideRotateCubePanel() {
+  currentCube = null;
   panels.rotateCube.classList.add('hidden');
+}
+
+function updateSlicePreview() {
+  if (!currentCube) return;
+  
+  const sliceCanvas = document.getElementById('slice-canvas') as HTMLCanvasElement | null;
+  if (sliceCanvas) {
+    currentCube.drawSlice(sliceCanvas);
+  }
 }
 
 document.getElementById('close-rotate-cube-btn')?.addEventListener('click', hideRotateCubePanel);
 
+// Rotation sliders
 document.getElementById('rotate-x-slider')?.addEventListener('input', (e) => {
   const val = parseInt((e.target as HTMLInputElement).value);
   const xValue = document.getElementById('rotate-x-value') as HTMLElement | null;
   if (xValue) xValue.textContent = `${val}°`;
+  
   const selected = drawingManager.getSelectedShape();
   if (selected && selected.getType && selected.getType() === 'rgbcube') {
     const cube = selected as RGBCube;
@@ -164,10 +216,12 @@ document.getElementById('rotate-x-slider')?.addEventListener('input', (e) => {
     drawingManager.redraw();
   }
 });
+
 document.getElementById('rotate-y-slider')?.addEventListener('input', (e) => {
   const val = parseInt((e.target as HTMLInputElement).value);
   const yValue = document.getElementById('rotate-y-value') as HTMLElement | null;
   if (yValue) yValue.textContent = `${val}°`;
+  
   const selected = drawingManager.getSelectedShape();
   if (selected && selected.getType && selected.getType() === 'rgbcube') {
     const cube = selected as RGBCube;
@@ -176,7 +230,29 @@ document.getElementById('rotate-y-slider')?.addEventListener('input', (e) => {
   }
 });
 
-// Otwieraj panel rotate-cube-panel po zaznaczeniu kostki RGB
+// Slice controls
+document.getElementById('slice-axis-select')?.addEventListener('change', (e) => {
+  const axis = (e.target as HTMLSelectElement).value as 'x' | 'y' | 'z';
+  
+  if (currentCube) {
+    currentCube.setSliceAxis(axis);
+    updateSlicePreview();
+    statusText.textContent = `Slice axis changed to ${axis.toUpperCase()}`;
+  }
+});
+
+document.getElementById('slice-position-slider')?.addEventListener('input', (e) => {
+  const val = parseInt((e.target as HTMLInputElement).value);
+  const slicePositionValue = document.getElementById('slice-position-value') as HTMLElement | null;
+  if (slicePositionValue) slicePositionValue.textContent = `${val}%`;
+  
+  if (currentCube) {
+    currentCube.setSlicePosition(val / 100);
+    updateSlicePreview();
+  }
+});
+
+// Open Rotate Cube panel on cube selection
 const origSelectShapeAt = drawingManager.selectShapeAt.bind(drawingManager);
 drawingManager.selectShapeAt = function(x, y) {
   const result = origSelectShapeAt(x, y);

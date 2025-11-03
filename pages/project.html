@@ -30,6 +30,12 @@
         <button id="color-picker-btn" class="xp-button">
           Color Picker
         </button>
+        <button id="image-processing-btn" class="xp-button">
+          Image Processing
+        </button>
+        <button id="histogram-btn" class="xp-button">
+          Histogram and Binarization
+        </button>
       </div>
 
       <!-- Toolbox -->
@@ -299,22 +305,252 @@
 
         <!-- Rotate Cube Panel -->
         <div id="rotate-cube-panel" class="hidden bg-[#ECE9D8] border-t border-[#808080] px-2 py-2">
-          <div class="flex items-center gap-2 text-xs flex-wrap">
-            <span class="font-bold">Rotate Cube:</span>
-            <label class="flex items-center gap-1 ml-4">
-              <span>X:</span>
-              <input type="range" id="rotate-x-slider" min="-180" max="180" value="0" class="xp-slider w-24">
-              <span id="rotate-x-value" class="w-8 text-xs">0°</span>
-            </label>
-            <label class="flex items-center gap-1 ml-4">
-              <span>Y:</span>
-              <input type="range" id="rotate-y-slider" min="-180" max="180" value="0" class="xp-slider w-24">
-              <span id="rotate-y-value" class="w-8 text-xs">0°</span>
-            </label>
+          <div class="flex items-start gap-4 text-xs">
+            
+            <!-- Left side: Rotation controls -->
+            <div class="flex flex-col gap-2">
+              <span class="font-bold">Rotate Cube:</span>
+              <label class="flex items-center gap-1">
+                <span class="w-8">X:</span>
+                <input type="range" id="rotate-x-slider" min="-180" max="180" value="0" class="xp-slider w-32">
+                <span id="rotate-x-value" class="w-12 text-xs">0°</span>
+              </label>
+              <label class="flex items-center gap-1">
+                <span class="w-8">Y:</span>
+                <input type="range" id="rotate-y-slider" min="-180" max="180" value="0" class="xp-slider w-32">
+                <span id="rotate-y-value" class="w-12 text-xs">0°</span>
+              </label>
+            </div>
+
+            <span class="font-bold">|</span>
+
+            <!-- Middle: Slice controls -->
+            <div class="flex flex-col gap-2">
+              <span class="font-bold">Cube Slice:</span>
+              <label class="flex items-center gap-1">
+                <span class="w-12">Axis:</span>
+                <select id="slice-axis-select" class="xp-select">
+                  <option value="x">Red (X)</option>
+                  <option value="y">Green (Y)</option>
+                  <option value="z" selected>Blue (Z)</option>
+                </select>
+              </label>
+              <label class="flex items-center gap-1">
+                <span class="w-12">Position:</span>
+                <input type="range" id="slice-position-slider" min="0" max="100" value="50" class="xp-slider w-32">
+                <span id="slice-position-value" class="w-12 text-xs">50%</span>
+              </label>
+            </div>
+
+            <span class="font-bold">|</span>
+
+            <!-- Right side: Slice preview -->
+            <div class="flex flex-col gap-2 items-center">
+              <span class="font-bold">Slice Preview:</span>
+              <canvas id="slice-canvas" width="200" height="200" class="border-2 border-[#404040]"></canvas>
+            </div>
+
             <button id="close-rotate-cube-btn" class="xp-button text-red-500 font-bold ml-4">Close</button>
           </div>
         </div>
-        <!-- END Rotate Cube Panel -->
+
+        <!-- Image Processing Panel -->
+        <div id="image-processing-panel" class="hidden bg-[#ECE9D8] border-t border-[#808080] px-2 py-2">
+          <div class="flex flex-col gap-3 text-xs">
+            
+            <!-- Row 1: Add/Subtract operations -->
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-bold">Add/Subtract:</span>
+              <label class="flex items-center gap-1">
+                <span>R:</span>
+                <input type="number" id="add-r" placeholder="0" min="-255" max="255" value="0" class="xp-input w-16">
+              </label>
+              <label class="flex items-center gap-1">
+                <span>G:</span>
+                <input type="number" id="add-g" placeholder="0" min="-255" max="255" value="0" class="xp-input w-16">
+              </label>
+              <label class="flex items-center gap-1">
+                <span>B:</span>
+                <input type="number" id="add-b" placeholder="0" min="-255" max="255" value="0" class="xp-input w-16">
+              </label>
+              <button id="btn-add" class="xp-button text-green-600">
+                <i class="fas fa-plus mr-1"></i>Add
+              </button>
+              <button id="btn-subtract" class="xp-button text-orange-600">
+                <i class="fas fa-minus mr-1"></i>Subtract
+              </button>
+            </div>
+
+            <div class="border-t border-[#808080]"></div>
+
+            <!-- Row 2: Multiply/Divide operations -->
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-bold">Multiply/Divide:</span>
+              <label class="flex items-center gap-1">
+                <span>R:</span>
+                <input type="number" id="mult-r" placeholder="1.0" step="0.1" value="1.0" class="xp-input w-16">
+              </label>
+              <label class="flex items-center gap-1">
+                <span>G:</span>
+                <input type="number" id="mult-g" placeholder="1.0" step="0.1" value="1.0" class="xp-input w-16">
+              </label>
+              <label class="flex items-center gap-1">
+                <span>B:</span>
+                <input type="number" id="mult-b" placeholder="1.0" step="0.1" value="1.0" class="xp-input w-16">
+              </label>
+              <button id="btn-multiply" class="xp-button text-purple-600">
+                <i class="fas fa-times mr-1"></i>Multiply
+              </button>
+              <button id="btn-divide" class="xp-button text-pink-600">
+                <i class="fas fa-divide mr-1"></i>Divide
+              </button>
+            </div>
+
+            <div class="border-t border-[#808080]"></div>
+
+            <!-- Row 3: Brightness -->
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-bold">Brightness:</span>
+              <label class="flex items-center gap-1">
+                <span>Value:</span>
+                <input type="range" id="brightness-slider" min="-255" max="255" value="0" class="xp-slider w-48">
+                <span id="brightness-value" class="w-12">0</span>
+              </label>
+              <button id="btn-brightness" class="xp-button text-yellow-600">
+                <i class="fas fa-sun mr-1"></i>Apply
+              </button>
+            </div>
+
+            <div class="border-t border-[#808080]"></div>
+
+            <!-- Row 4: Grayscale -->
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-bold">Grayscale:</span>
+              <button id="btn-grayscale-avg" class="xp-button">
+                Average
+              </button>
+              <button id="btn-grayscale-lum" class="xp-button">
+                Luminance
+              </button>
+              <button id="btn-grayscale-des" class="xp-button">
+                Desaturation
+              </button>
+            </div>
+
+            <div class="border-t border-[#808080]"></div>
+
+            <!-- Row 5: Filters -->
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-bold">Filters:</span>
+              <button id="btn-smoothing-filter" class="xp-button text-indigo-600">
+                <i class="fas fa-magic mr-1"></i>Smoothing
+              </button>
+              <button id="btn-median-filter" class="xp-button text-teal-600">
+                <i class="fas fa-filter mr-1"></i>Median
+              </button>
+              <button id="btn-sobel-filter" class="xp-button text-cyan-600">
+                <i class="fas fa-border-style mr-1"></i>Sobel Edge
+              </button>
+              <button id="btn-sharpen-filter" class="xp-button text-red-600">
+                <i class="fas fa-adjust mr-1"></i>Sharpen
+              </button>
+              <button id="btn-gaussian-filter" class="xp-button text-blue-600">
+                <i class="fas fa-cloud mr-1"></i>Gaussian Blur
+              </button>
+            </div>
+
+            <div class="border-t border-[#808080]"></div>
+
+            <!-- Row 6: Utility buttons -->
+            <div class="flex items-center gap-2 flex-wrap">
+              <button id="btn-reset-image" class="xp-button text-blue-600">
+                <i class="fas fa-undo mr-1"></i>Reset to Original
+              </button>
+              <button id="close-image-processing-btn" class="xp-button text-red-500 font-bold">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Histogram Panel -->
+        <div id="histogram-panel" class="hidden bg-[#ECE9D8] border-t border-[#808080] px-2 py-2">
+          <div class="flex flex-col gap-3 text-xs">
+            
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-bold">Operations:</span>
+              <button id="btn-stretch-histogram" class="xp-button text-lime-600">
+                <i class="fas fa-arrows-alt-h mr-1"></i>Stretch Histogram
+              </button>
+              <button id="btn-equalize-histogram" class="xp-button text-green-600">
+                <i class="fas fa-equals mr-1"></i>Equalize Histogram
+              </button>
+            </div>
+
+            <div class="border-t border-[#808080]"></div>
+
+            <div class="flex flex-col gap-2">
+              <span class="font-bold">Histogram Visualization:</span>
+              <div class="flex gap-4 items-start flex-wrap">
+                <div class="flex flex-col gap-1">
+                  <span class="text-xs font-bold text-red-600">Red Channel</span>
+                  <canvas id="histogram-r" width="256" height="100" class="border border-[#808080] bg-white"></canvas>
+                </div>
+                <div class="flex flex-col gap-1">
+                  <span class="text-xs font-bold text-green-600">Green Channel</span>
+                  <canvas id="histogram-g" width="256" height="100" class="border border-[#808080] bg-white"></canvas>
+                </div>
+                <div class="flex flex-col gap-1">
+                  <span class="text-xs font-bold text-blue-600">Blue Channel</span>
+                  <canvas id="histogram-b" width="256" height="100" class="border border-[#808080] bg-white"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <div class="border-t border-[#808080]"></div>
+
+            <div class="flex flex-col gap-2">
+              <span class="font-bold">Binarization:</span>
+              
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-xs">Manual Threshold:</span>
+                <label class="flex items-center gap-1">
+                  <span>Threshold:</span>
+                  <input type="range" id="binarize-threshold-slider" min="0" max="255" value="128" class="xp-slider w-48">
+                  <span id="binarize-threshold-value" class="w-12">128</span>
+                </label>
+                <button id="btn-binarize-manual" class="xp-button text-purple-600">
+                  <i class="fas fa-adjust mr-1"></i>Apply Manual
+                </button>
+              </div>
+
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-xs">Automatic Methods:</span>
+                <label class="flex items-center gap-1">
+                  <span>% Black:</span>
+                  <input type="number" id="percent-black-input" min="0" max="100" value="50" step="1" class="xp-input w-16">
+                </label>
+                <button id="btn-binarize-percent" class="xp-button text-indigo-600">
+                  <i class="fas fa-percentage mr-1"></i>Percent Black
+                </button>
+                <button id="btn-binarize-mean" class="xp-button text-teal-600">
+                  <i class="fas fa-sync mr-1"></i>Mean Iterative
+                </button>
+              </div>
+            </div>
+
+            <div class="border-t border-[#808080]"></div>
+
+            <div class="flex items-center gap-2 flex-wrap">
+              <button id="btn-reset-histogram" class="xp-button text-blue-600">
+                <i class="fas fa-undo mr-1"></i>Reset to Original
+              </button>
+              <button id="close-histogram-btn" class="xp-button text-red-500 font-bold">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
 
       </div>
 

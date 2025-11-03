@@ -14,6 +14,12 @@ export class DrawingManager {
   private scale: number = 1.0;
   private offsetX: number = 0;
   private offsetY: number = 0;
+
+  // Image processing support
+  private originalImageData: ImageData | null = null;
+  private currentImageData: ImageData | null = null;
+  private imageX: number = 0;
+  private imageY: number = 0;
   
   constructor(ctx: CanvasRenderingContext2D) {
     this.ctx = ctx;
@@ -230,5 +236,86 @@ export class DrawingManager {
       console.error('Błąd importowania kształtów');
       return false;
     }
+  }
+
+  // Image processing methods
+  public setImageData(imageData: ImageData, x: number, y: number): void {
+    this.originalImageData = imageData;
+    this.currentImageData = new ImageData(
+      new Uint8ClampedArray(imageData.data),
+      imageData.width,
+      imageData.height
+    );
+    this.imageX = x;
+    this.imageY = y;
+  }
+
+  public getCurrentImageData(): ImageData | null {
+    return this.currentImageData;
+  }
+
+  public getOriginalImageData(): ImageData | null {
+    return this.originalImageData;
+  }
+
+  public updateImageData(imageData: ImageData): void {
+    this.currentImageData = imageData;
+    this.redrawImage();
+  }
+
+  public resetToOriginalImage(): void {
+    if (this.originalImageData) {
+      this.currentImageData = new ImageData(
+        new Uint8ClampedArray(this.originalImageData.data),
+        this.originalImageData.width,
+        this.originalImageData.height
+      );
+      this.redrawImage();
+    }
+  }
+
+  public hasImageData(): boolean {
+    return this.currentImageData !== null;
+  }
+
+  private redrawImage(): void {
+    if (!this.currentImageData) return;
+
+    // Create temporary canvas to hold the image
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = this.currentImageData.width;
+    tempCanvas.height = this.currentImageData.height;
+    const tempCtx = tempCanvas.getContext('2d');
+    if (!tempCtx) return;
+
+    tempCtx.putImageData(this.currentImageData, 0, 0);
+
+    // Update background image with processed data
+    if (this.backgroundRect) {
+      this.setBackgroundImage(
+        tempCanvas,
+        this.backgroundRect.x,
+        this.backgroundRect.y,
+        this.backgroundRect.width,
+        this.backgroundRect.height
+      );
+    } else {
+      this.setBackgroundImage(
+        tempCanvas,
+        this.imageX,
+        this.imageY,
+        this.currentImageData.width,
+        this.currentImageData.height
+      );
+    }
+
+    this.redraw();
+  }
+
+  public clearImageData(): void {
+    this.originalImageData = null;
+    this.currentImageData = null;
+    this.imageX = 0;
+    this.imageY = 0;
   }
 }
