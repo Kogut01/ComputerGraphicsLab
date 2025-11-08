@@ -62,6 +62,14 @@
             <i class="far fa-circle"></i>
           </button>
 
+          <button id="tool-bezier" class="xp-button-tool" title="Bezier Curve">
+            <i class="fas fa-bezier-curve"></i>
+          </button>
+
+          <button id="tool-polygon" class="xp-button-tool" title="Polygon">
+            <i class="fas fa-draw-polygon"></i>
+          </button>
+
           <button id="zoom-btn" class="xp-button-tool" title="Zoom">
             <i class="fas fa-search"></i>
           </button> 
@@ -546,6 +554,237 @@
                 <i class="fas fa-undo mr-1"></i>Reset to Original
               </button>
               <button id="close-histogram-btn" class="xp-button text-red-500 font-bold">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Polygon Panel -->
+        <div id="polygon-panel" class="hidden bg-[#ECE9D8] border-t border-[#808080] px-2 py-2">
+          <div class="flex flex-col gap-3 text-xs">
+            
+            <!-- Section 1: Create New Polygon -->
+            <div id="polygon-create-section" class="flex flex-col gap-2">
+              <span class="font-bold">Create New Polygon:</span>
+              
+              <div class="flex items-center gap-2 flex-wrap">
+                <label class="flex items-center gap-1">
+                  <input type="checkbox" id="polygon-filled-checkbox" class="xp-checkbox">
+                  <span>Filled</span>
+                </label>
+                
+                <label class="flex items-center gap-1 ml-4">
+                  <span>X:</span>
+                  <input type="number" id="polygon-point-x" value="100" class="xp-input w-20">
+                </label>
+                
+                <label class="flex items-center gap-1">
+                  <span>Y:</span>
+                  <input type="number" id="polygon-point-y" value="100" class="xp-input w-20">
+                </label>
+                
+                <button id="btn-add-polygon-vertex" class="xp-button text-green-600">
+                  <i class="fas fa-plus mr-1"></i>Add Vertex
+                </button>
+                
+                <button id="btn-remove-last-vertex" class="xp-button text-orange-600">
+                  <i class="fas fa-undo mr-1"></i>Remove Last
+                </button>
+                
+                <button id="btn-finish-polygon" class="xp-button text-blue-600 font-bold ml-4">
+                  <i class="fas fa-check mr-1"></i>Finish Polygon
+                </button>
+              </div>
+              
+              <div id="polygon-preview-vertices" class="text-xs text-gray-600 italic">
+                Vertices: <span id="polygon-vertex-count">0</span> (minimum 3 required) | 💡 Press Backspace to remove last vertex
+              </div>
+            </div>
+
+            <div class="border-t border-[#808080]"></div>
+            
+            <!-- Section 2: Edit Existing Polygon -->
+            <div id="polygon-edit-section" class="hidden flex flex-col gap-2">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-bold">Polygon Vertices:</span>
+                <span id="polygon-vertices-count" class="text-blue-600">0 vertices</span>
+                <label class="flex items-center gap-1 ml-4">
+                  <input type="checkbox" id="polygon-edit-filled" class="xp-checkbox">
+                  <span>Filled</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="border-t border-[#808080]"></div>
+
+            <!-- Section 3: Transformations -->
+            <div id="polygon-transform-section" class="hidden flex flex-col gap-2">
+              <span class="font-bold">Transformations (Homogeneous Coordinates):</span>
+              
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-xs font-bold">Translation:</span>
+                <label class="flex items-center gap-1">
+                  <span>Δx:</span>
+                  <input type="number" id="polygon-translate-dx" value="0" class="xp-input w-20">
+                </label>
+                <label class="flex items-center gap-1">
+                  <span>Δy:</span>
+                  <input type="number" id="polygon-translate-dy" value="0" class="xp-input w-20">
+                </label>
+                <button id="btn-polygon-translate" class="xp-button text-purple-600">
+                  <i class="fas fa-arrows-alt mr-1"></i>Apply Translation
+                </button>
+              </div>
+
+              <div class="border-t border-[#808080] my-1"></div>
+
+              <div class="flex flex-col gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-xs font-bold">Rotation Pivot:</span>
+                  <label class="flex items-center gap-1">
+                    <span>Pivot X:</span>
+                    <input type="number" id="polygon-pivot-x" value="0" class="xp-input w-20">
+                  </label>
+                  <label class="flex items-center gap-1">
+                    <span>Pivot Y:</span>
+                    <input type="number" id="polygon-pivot-y" value="0" class="xp-input w-20">
+                  </label>
+                  <button id="btn-apply-pivot" class="xp-button text-blue-600">
+                    <i class="fas fa-check mr-1"></i>Set Pivot
+                  </button>
+                </div>
+
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-xs font-bold">Rotation Angle:</span>
+                  <label class="flex items-center gap-1">
+                    <span>Angle (degrees):</span>
+                    <input type="number" id="polygon-rotate-angle" value="0" step="1" class="xp-input w-20">
+                  </label>
+                  <button id="btn-polygon-rotate" class="xp-button text-orange-600">
+                    <i class="fas fa-sync-alt mr-1"></i>Apply Rotation
+                  </button>
+                </div>
+
+                <div class="text-xs text-gray-600 italic">
+                  💡 Current pivot: <span id="polygon-pivot-display" class="font-bold text-blue-600">Not set</span> | Hold <span class="font-bold">Ctrl+Drag</span> to rotate with mouse
+                </div>
+              </div>
+
+              <div class="border-t border-[#808080] my-1"></div>
+
+              <div class="flex flex-col gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-xs font-bold">Scale Point:</span>
+                  <label class="flex items-center gap-1">
+                    <span>Point X:</span>
+                    <input type="number" id="polygon-scale-point-x" value="0" class="xp-input w-20">
+                  </label>
+                  <label class="flex items-center gap-1">
+                    <span>Point Y:</span>
+                    <input type="number" id="polygon-scale-point-y" value="0" class="xp-input w-20">
+                  </label>
+                  <button id="btn-apply-scale-point" class="xp-button text-green-600">
+                    <i class="fas fa-check mr-1"></i>Set Scale Point
+                  </button>
+                </div>
+
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-xs font-bold">Scale Factors:</span>
+                  <label class="flex items-center gap-1">
+                    <span>Sx:</span>
+                    <input type="number" id="polygon-scale-sx" value="1" step="0.1" class="xp-input w-20">
+                  </label>
+                  <label class="flex items-center gap-1">
+                    <span>Sy:</span>
+                    <input type="number" id="polygon-scale-sy" value="1" step="0.1" class="xp-input w-20">
+                  </label>
+                  <button id="btn-polygon-scale" class="xp-button text-teal-600">
+                    <i class="fas fa-expand-arrows-alt mr-1"></i>Apply Scaling
+                  </button>
+                </div>
+
+                <div class="text-xs text-gray-600 italic">
+                  💡 Current scale point: <span id="polygon-scale-point-display" class="font-bold text-green-600">Not set</span> | Hold <span class="font-bold">Alt+Drag</span> to scale with mouse
+                </div>
+              </div>
+            </div>
+
+            <div class="border-t border-[#808080]"></div>
+
+            <div class="flex items-center gap-2 flex-wrap">
+              <button id="close-polygon-btn" class="xp-button text-red-500 font-bold">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bezier Panel -->
+        <div id="bezier-panel" class="hidden bg-[#ECE9D8] border-t border-[#808080] px-2 py-2">
+          <div class="flex flex-col gap-3 text-xs">
+            
+            <!-- Section 1: Create New Curve -->
+            <div id="bezier-create-section" class="flex flex-col gap-2">
+              <span class="font-bold">Create New Bézier Curve:</span>
+              
+              <div class="flex items-center gap-2 flex-wrap">
+                <label class="flex items-center gap-1">
+                  <span>Degree:</span>
+                  <input type="number" id="bezier-degree-input" min="1" max="20" value="3" class="xp-input w-16">
+                </label>
+                
+                <label class="flex items-center gap-1 ml-4">
+                  <span>Start Point - X:</span>
+                  <input type="number" id="bezier-start-x" value="100" class="xp-input w-20">
+                </label>
+                
+                <label class="flex items-center gap-1">
+                  <span>Y:</span>
+                  <input type="number" id="bezier-start-y" value="100" class="xp-input w-20">
+                </label>
+                
+                <button id="btn-create-bezier" class="xp-button text-blue-600 font-bold ml-4">
+                  <i class="fas fa-magic mr-1"></i>Create Curve
+                </button>
+              </div>
+              
+              <span class="text-xs text-gray-600 italic">💡 Degree determines curve complexity. Points will be created horizontally from the start point.</span>
+            </div>
+
+            <div class="border-t border-[#808080]"></div>
+            
+            <!-- Section 2: Edit Existing Curve -->
+            <div id="bezier-edit-section" class="hidden flex flex-col gap-2">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-bold">Bezier Curve Control Points:</span>
+                <span id="bezier-point-count" class="text-blue-600">0 points</span>
+                <span class="ml-4 font-bold">Degree:</span>
+                <span id="bezier-degree" class="text-green-600">-</span>
+              </div>
+
+              <div class="border-t border-[#808080]"></div>
+
+              <div id="bezier-points-container" class="flex flex-col gap-2 max-h-48 overflow-y-auto">
+                <!-- Control points will be added here dynamically -->
+              </div>
+
+              <div class="border-t border-[#808080]"></div>
+
+              <div class="flex items-center gap-2 flex-wrap">
+                <button id="btn-add-bezier-point" class="xp-button text-green-600">
+                  <i class="fas fa-plus mr-1"></i>Add Point (at end)
+                </button>
+                <button id="btn-remove-selected-point" class="xp-button text-red-600">
+                  <i class="fas fa-trash mr-1"></i>Remove Selected Point
+                </button>
+              </div>
+            </div>
+
+            <div class="border-t border-[#808080]"></div>
+
+            <div class="flex items-center gap-2 flex-wrap">
+              <button id="close-bezier-btn" class="xp-button text-red-500 font-bold">
                 Close
               </button>
             </div>

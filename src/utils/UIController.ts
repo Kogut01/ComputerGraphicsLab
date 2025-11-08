@@ -1,5 +1,5 @@
 import { DrawingManager } from './DrawingManager';
-import { Line, Rectangle, Circle } from './shapes/Import';
+import { Line, Rectangle, Circle, BezierCurve } from './shapes/Import';
 import { parsePPM } from './PPMLoader';
 import { ImageProcessor } from './ImageProcessor';
 
@@ -13,13 +13,14 @@ export class UIController {
     rotateCube: HTMLElement;
     imageProcessing: HTMLElement;
     histogram: HTMLElement;
+    bezier: HTMLElement;
   };
   private drawingManager: DrawingManager;
   private statusText: HTMLElement;
   
   // Initialize UI controller with all panels and event handlers
   constructor(
-    panels: { drawParams: HTMLElement; file: HTMLElement; editShape: HTMLElement; zoom: HTMLElement, colorPicker: HTMLElement, rotateCube: HTMLElement, imageProcessing: HTMLElement, histogram: HTMLElement },
+    panels: { drawParams: HTMLElement; file: HTMLElement; editShape: HTMLElement; zoom: HTMLElement, colorPicker: HTMLElement, rotateCube: HTMLElement, imageProcessing: HTMLElement, histogram: HTMLElement, bezier: HTMLElement },
     drawingManager: DrawingManager,
     statusText: HTMLElement
   ) {
@@ -45,6 +46,7 @@ export class UIController {
       this.panels.rotateCube.classList.add('hidden');
       this.panels.imageProcessing.classList.add('hidden');
       this.panels.histogram.classList.add('hidden');
+      this.panels.bezier.classList.add('hidden');
 
       this.statusText.textContent = `Draw Parameters Panel opened`;
     });
@@ -62,6 +64,7 @@ export class UIController {
       this.panels.rotateCube.classList.add('hidden');
       this.panels.imageProcessing.classList.add('hidden');
       this.panels.histogram.classList.add('hidden');
+      this.panels.bezier.classList.add('hidden');
 
       this.statusText.textContent = `File Panel opened`;
     });
@@ -85,6 +88,7 @@ export class UIController {
       this.panels.rotateCube.classList.add('hidden');
       this.panels.imageProcessing.classList.add('hidden');
       this.panels.histogram.classList.add('hidden');
+      this.panels.bezier.classList.add('hidden');
 
       this.statusText.textContent = `Zoom: Hold Shift and drag to pan`;
       this.updateZoomDisplay();
@@ -127,6 +131,7 @@ export class UIController {
       this.panels.rotateCube.classList.add('hidden');
       this.panels.imageProcessing.classList.add('hidden');
       this.panels.histogram.classList.add('hidden');
+      this.panels.bezier.classList.add('hidden');
 
       this.statusText.textContent = `Color Picker opened`;
     });
@@ -148,6 +153,7 @@ export class UIController {
       this.panels.colorPicker.classList.add('hidden');
       this.panels.rotateCube.classList.add('hidden');
       this.panels.histogram.classList.add('hidden');
+      this.panels.bezier.classList.add('hidden');
 
       this.statusText.textContent = `Image Processing panel opened`;
     });
@@ -169,6 +175,7 @@ export class UIController {
       this.panels.colorPicker.classList.add('hidden');
       this.panels.rotateCube.classList.add('hidden');
       this.panels.imageProcessing.classList.add('hidden');
+      this.panels.bezier.classList.add('hidden');
 
       // Auto-display histogram when panel opens
       if (!this.panels.histogram.classList.contains('hidden')) {
@@ -180,6 +187,10 @@ export class UIController {
 
     document.getElementById('close-histogram-btn')?.addEventListener('click', () => {
       this.panels.histogram.classList.add('hidden');
+    });
+
+    document.getElementById('close-bezier-btn')?.addEventListener('click', () => {
+      this.panels.bezier.classList.add('hidden');
     });
 
     document.getElementById('draw-shape-btn')?.addEventListener('click', () => this.handleDrawShapeFromParams());
@@ -1092,6 +1103,136 @@ export class UIController {
       ctx.moveTo(0, y);
       ctx.lineTo(width, y);
       ctx.stroke();
+    }
+  }
+
+  // Update Bezier curve panel with control points
+  updateBezierPanel(bezier: BezierCurve, selectedPointIndex: number = -1): void {
+    const container = document.getElementById('bezier-points-container');
+    const countLabel = document.getElementById('bezier-point-count');
+    const degreeLabel = document.getElementById('bezier-degree');
+    const createSection = document.getElementById('bezier-create-section');
+    const editSection = document.getElementById('bezier-edit-section');
+    
+    if (!container || !countLabel || !degreeLabel) return;
+    
+    // Show edit section, hide create section when editing a curve
+    if (createSection) createSection.classList.add('hidden');
+    if (editSection) editSection.classList.remove('hidden');
+    
+    const degree = bezier.controlPoints.length - 1;
+    countLabel.textContent = `${bezier.controlPoints.length} points`;
+    degreeLabel.textContent = `${degree}`;
+    container.innerHTML = '';
+    
+    // Section 1: Add new point with specific coordinates
+    const addPointSection = document.createElement('div');
+    addPointSection.className = 'flex items-center gap-2 flex-wrap';
+    
+    const addPointTitle = document.createElement('span');
+    addPointTitle.className = 'font-bold';
+    addPointTitle.textContent = 'Add Point:';
+    
+    const newXLabel = document.createElement('span');
+    newXLabel.textContent = 'X:';
+    
+    const newXInput = document.createElement('input');
+    newXInput.type = 'number';
+    newXInput.id = 'bezier-new-x';
+    newXInput.className = 'xp-input w-20';
+    newXInput.placeholder = '100';
+    newXInput.value = '100';
+    
+    const newYLabel = document.createElement('span');
+    newYLabel.textContent = 'Y:';
+    newYLabel.className = 'ml-2';
+    
+    const newYInput = document.createElement('input');
+    newYInput.type = 'number';
+    newYInput.id = 'bezier-new-y';
+    newYInput.className = 'xp-input w-20';
+    newYInput.placeholder = '100';
+    newYInput.value = '100';
+    
+    const addWithCoordsBtn = document.createElement('button');
+    addWithCoordsBtn.className = 'xp-button text-green-600 ml-2';
+    addWithCoordsBtn.innerHTML = '<i class="fas fa-plus-circle mr-1"></i>Add';
+    addWithCoordsBtn.addEventListener('click', () => {
+      const x = parseFloat(newXInput.value) || 100;
+      const y = parseFloat(newYInput.value) || 100;
+      bezier.controlPoints.push({ x, y });
+      bezier.selectedPointIndex = -1;
+      this.drawingManager.redraw();
+      this.updateBezierPanel(bezier, -1);
+      this.statusText.textContent = `Added point P${bezier.controlPoints.length - 1} at (${Math.round(x)}, ${Math.round(y)}). Degree: ${bezier.controlPoints.length - 1}`;
+    });
+    
+    addPointSection.appendChild(addPointTitle);
+    addPointSection.appendChild(newXLabel);
+    addPointSection.appendChild(newXInput);
+    addPointSection.appendChild(newYLabel);
+    addPointSection.appendChild(newYInput);
+    addPointSection.appendChild(addWithCoordsBtn);
+    container.appendChild(addPointSection);
+    
+    // Section 2: Edit selected point
+    if (selectedPointIndex >= 0 && selectedPointIndex < bezier.controlPoints.length) {
+      const point = bezier.controlPoints[selectedPointIndex];
+      
+      const pointDiv = document.createElement('div');
+      pointDiv.className = 'flex items-center gap-2 mt-2';
+      
+      const label = document.createElement('span');
+      label.className = 'font-bold text-green-600';
+      label.textContent = `Selected: P${selectedPointIndex}`;
+      
+      const xLabel = document.createElement('span');
+      xLabel.textContent = 'X:';
+      xLabel.className = 'ml-4';
+      
+      const xInput = document.createElement('input');
+      xInput.type = 'number';
+      xInput.className = 'xp-input w-24';
+      xInput.value = Math.round(point.x).toString();
+      xInput.addEventListener('input', () => {
+        const newX = parseFloat(xInput.value) || 0;
+        bezier.updateControlPoint(selectedPointIndex, newX, point.y);
+        this.drawingManager.redraw();
+      });
+      
+      const yLabel = document.createElement('span');
+      yLabel.textContent = 'Y:';
+      yLabel.className = 'ml-2';
+      
+      const yInput = document.createElement('input');
+      yInput.type = 'number';
+      yInput.className = 'xp-input w-24';
+      yInput.value = Math.round(point.y).toString();
+      yInput.addEventListener('input', () => {
+        const newY = parseFloat(yInput.value) || 0;
+        bezier.updateControlPoint(selectedPointIndex, point.x, newY);
+        this.drawingManager.redraw();
+      });
+      
+      pointDiv.appendChild(label);
+      pointDiv.appendChild(xLabel);
+      pointDiv.appendChild(xInput);
+      pointDiv.appendChild(yLabel);
+      pointDiv.appendChild(yInput);
+      
+      container.appendChild(pointDiv);
+      
+      // Show instruction
+      const instruction = document.createElement('div');
+      instruction.className = 'text-xs text-gray-600 mt-2 italic';
+      instruction.textContent = '💡 Drag point on canvas or edit values above.';
+      container.appendChild(instruction);
+    } else {
+      // When no point is selected, show only instruction
+      const instruction = document.createElement('div');
+      instruction.className = 'text-xs text-gray-600 mt-2 italic';
+      instruction.textContent = '👆 Click any control point on canvas to select and edit it.';
+      container.appendChild(instruction);
     }
   }
 }

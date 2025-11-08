@@ -6,10 +6,10 @@ export class ImageProcessor {
     const resultData = result.data;
     
     for (let i = 0; i < data.length; i += 4) {
-      resultData[i] = this.clamp(data[i] + r);     // R
-      resultData[i + 1] = this.clamp(data[i + 1] + g); // G
-      resultData[i + 2] = this.clamp(data[i + 2] + b); // B
-      resultData[i + 3] = data[i + 3];              // A (alpha bez zmian)
+      resultData[i] = this.clamp(data[i] + r);     
+      resultData[i + 1] = this.clamp(data[i + 1] + g); 
+      resultData[i + 2] = this.clamp(data[i + 2] + b); 
+      resultData[i + 3] = data[i + 3];              
     }
     
     return result;
@@ -21,10 +21,10 @@ export class ImageProcessor {
     const resultData = result.data;
     
     for (let i = 0; i < data.length; i += 4) {
-      resultData[i] = this.clamp(data[i] - r);     // R
-      resultData[i + 1] = this.clamp(data[i + 1] - g); // G
-      resultData[i + 2] = this.clamp(data[i + 2] - b); // B
-      resultData[i + 3] = data[i + 3];              // A
+      resultData[i] = this.clamp(data[i] - r);     
+      resultData[i + 1] = this.clamp(data[i + 1] - g); 
+      resultData[i + 2] = this.clamp(data[i + 2] - b); 
+      resultData[i + 3] = data[i + 3];              
     }
     
     return result;
@@ -36,10 +36,10 @@ export class ImageProcessor {
     const resultData = result.data;
     
     for (let i = 0; i < data.length; i += 4) {
-      resultData[i] = this.clamp(data[i] * r);     // R
-      resultData[i + 1] = this.clamp(data[i + 1] * g); // G
-      resultData[i + 2] = this.clamp(data[i + 2] * b); // B
-      resultData[i + 3] = data[i + 3];              // A
+      resultData[i] = this.clamp(data[i] * r);     
+      resultData[i + 1] = this.clamp(data[i + 1] * g); 
+      resultData[i + 2] = this.clamp(data[i + 2] * b); 
+      resultData[i + 3] = data[i + 3];              
     }
     
     return result;
@@ -56,10 +56,10 @@ export class ImageProcessor {
     const bDiv = b === 0 ? 1 : b;
     
     for (let i = 0; i < data.length; i += 4) {
-      resultData[i] = this.clamp(data[i] / rDiv);     // R
-      resultData[i + 1] = this.clamp(data[i + 1] / gDiv); // G
-      resultData[i + 2] = this.clamp(data[i + 2] / bDiv); // B
-      resultData[i + 3] = data[i + 3];                 // A
+      resultData[i] = this.clamp(data[i] / rDiv);     
+      resultData[i + 1] = this.clamp(data[i + 1] / gDiv); 
+      resultData[i + 2] = this.clamp(data[i + 2] / bDiv); 
+      resultData[i + 3] = data[i + 3];                 
     }
     
     return result;
@@ -71,10 +71,10 @@ export class ImageProcessor {
     const resultData = result.data;
     
     for (let i = 0; i < data.length; i += 4) {
-      resultData[i] = this.clamp(data[i] + value);     // R
-      resultData[i + 1] = this.clamp(data[i + 1] + value); // G
-      resultData[i + 2] = this.clamp(data[i + 2] + value); // B
-      resultData[i + 3] = data[i + 3];                  // A
+      resultData[i] = this.clamp(data[i] + value);     
+      resultData[i + 1] = this.clamp(data[i + 1] + value); 
+      resultData[i + 2] = this.clamp(data[i + 2] + value); 
+      resultData[i + 3] = data[i + 3];                  
     }
     
     return result;

@@ -35,6 +35,8 @@ const toolButtons = {
   rectangle: document.getElementById('tool-rectangle') as HTMLButtonElement,
   circle: document.getElementById('tool-circle') as HTMLButtonElement,
   rgbcube: document.getElementById('tool-rgb-cube') as HTMLButtonElement,
+  bezier: document.getElementById('tool-bezier') as HTMLButtonElement,
+  polygon: document.getElementById('tool-polygon') as HTMLButtonElement,
 };
 
 // Panels
@@ -47,6 +49,7 @@ const panels = {
   rotateCube: document.getElementById('rotate-cube-panel') as HTMLDivElement,
   imageProcessing: document.getElementById('image-processing-panel') as HTMLDivElement,
   histogram: document.getElementById('histogram-panel') as HTMLDivElement,
+  bezier: document.getElementById('bezier-panel') as HTMLDivElement,
 };
 
 // Initialize managers
@@ -54,7 +57,7 @@ const toolManager = new ToolManager(toolButtons, statusText, drawingManager, can
 const uiController = new UIController(panels, drawingManager, statusText);
 
 // Interaction Manager
-new InteractionManager(
+const interactionManager = new InteractionManager(
   canvas, 
   ctx, 
   drawingManager, 
@@ -92,7 +95,23 @@ document.getElementById('help-btn')?.addEventListener('click', () => {
             <li><strong>Line</strong> - Draw straight lines</li>
             <li><strong>Rectangle</strong> - Draw rectangles</li>
             <li><strong>Circle</strong> - Draw circles</li>
+            <li><strong>Bezier Curve</strong> - Draw Bézier curves with control points</li>
             <li><strong>RGB Cube</strong> - Draw interactive 3D RGB color cube</li>
+          </ul>
+        </div>
+
+        <div>
+          <p class="font-bold mb-1">📈 Bézier Curves:</p>
+          <ul class="list-disc list-inside ml-2">
+            <li><strong>Creating:</strong> Click Bezier tool → Panel opens → Enter degree, start point (X,Y), end point (X,Y) → Click "Create Curve"</li>
+            <li><strong>Degree:</strong> Determines curve complexity (1=linear, 2=quadratic, 3=cubic, etc.). Points are evenly spaced between start and end</li>
+            <li><strong>Adding Points (Mouse):</strong> With Bezier tool active and curve selected, click on canvas to add points at clicked position</li>
+            <li><strong>Adding Points (Coordinates):</strong> In edit section, enter X,Y values and click "Add" to add point at specific location</li>
+            <li><strong>Selecting Point:</strong> Use Select tool, click on any control point (red/blue circle) to select it (green highlight)</li>
+            <li><strong>Dragging:</strong> Click and drag selected point - curve updates in real-time</li>
+            <li><strong>Editing Coordinates:</strong> When point is selected, edit X/Y values in panel for precision</li>
+            <li><strong>Removing Point:</strong> Select a point, then click "Remove Selected Point" (minimum 2 points required)</li>
+            <li><strong>Panel Info:</strong> Shows number of control points and current curve degree</li>
           </ul>
         </div>
         
@@ -264,6 +283,170 @@ drawingManager.selectShapeAt = function(x, y) {
   }
   return result;
 };
+
+// Bezier curve event handlers
+document.getElementById('btn-create-bezier')?.addEventListener('click', () => {
+  const degreeInput = document.getElementById('bezier-degree-input') as HTMLInputElement;
+  const startXInput = document.getElementById('bezier-start-x') as HTMLInputElement;
+  const startYInput = document.getElementById('bezier-start-y') as HTMLInputElement;
+  
+  if (!degreeInput || !startXInput || !startYInput) return;
+  
+  const degree = parseInt(degreeInput.value);
+  const startX = parseFloat(startXInput.value);
+  const startY = parseFloat(startYInput.value);
+  
+  if (isNaN(degree) || degree < 1) {
+    alert('Please enter a valid degree (minimum 1)');
+    return;
+  }
+  
+  if (isNaN(startX) || isNaN(startY)) {
+    alert('Please enter valid coordinates');
+    return;
+  }
+  
+  interactionManager.createBezierFromPanel(degree, startX, startY);
+});
+
+document.getElementById('btn-add-bezier-point')?.addEventListener('click', () => {
+  interactionManager.addBezierPoint();
+});
+
+document.getElementById('btn-remove-selected-point')?.addEventListener('click', () => {
+  interactionManager.removeSelectedBezierPoint();
+});
+
+// Polygon event handlers
+document.getElementById('btn-add-polygon-vertex')?.addEventListener('click', () => {
+  const xInput = document.getElementById('polygon-point-x') as HTMLInputElement;
+  const yInput = document.getElementById('polygon-point-y') as HTMLInputElement;
+  
+  if (!xInput || !yInput) return;
+  
+  const x = parseFloat(xInput.value);
+  const y = parseFloat(yInput.value);
+  
+  if (isNaN(x) || isNaN(y)) {
+    alert('Please enter valid coordinates');
+    return;
+  }
+  
+  // Simulate a click at this position to add vertex
+  interactionManager.addPolygonVertexFromPanel(x, y);
+});
+
+document.getElementById('btn-finish-polygon')?.addEventListener('click', () => {
+  interactionManager.finishPolygonFromPanel();
+});
+
+document.getElementById('btn-remove-last-vertex')?.addEventListener('click', () => {
+  interactionManager.removeLastPolygonVertex();
+});
+
+document.getElementById('btn-polygon-translate')?.addEventListener('click', () => {
+  const dxInput = document.getElementById('polygon-translate-dx') as HTMLInputElement;
+  const dyInput = document.getElementById('polygon-translate-dy') as HTMLInputElement;
+  
+  if (!dxInput || !dyInput) return;
+  
+  const dx = parseFloat(dxInput.value);
+  const dy = parseFloat(dyInput.value);
+  
+  if (isNaN(dx) || isNaN(dy)) {
+    alert('Please enter valid translation values');
+    return;
+  }
+  
+  interactionManager.translateSelectedPolygon(dx, dy);
+});
+
+document.getElementById('btn-apply-pivot')?.addEventListener('click', () => {
+  const xInput = document.getElementById('polygon-pivot-x') as HTMLInputElement;
+  const yInput = document.getElementById('polygon-pivot-y') as HTMLInputElement;
+  
+  if (!xInput || !yInput) return;
+  
+  const x = parseFloat(xInput.value);
+  const y = parseFloat(yInput.value);
+  
+  if (isNaN(x) || isNaN(y)) {
+    alert('Please enter valid pivot coordinates');
+    return;
+  }
+  
+  interactionManager.setPivotFromInput(x, y);
+});
+
+document.getElementById('btn-polygon-rotate')?.addEventListener('click', () => {
+  const angleInput = document.getElementById('polygon-rotate-angle') as HTMLInputElement;
+  
+  if (!angleInput) return;
+  
+  const angle = parseFloat(angleInput.value);
+  
+  if (isNaN(angle)) {
+    alert('Please enter a valid angle');
+    return;
+  }
+  
+  interactionManager.rotateSelectedPolygon(angle);
+});
+
+document.getElementById('btn-apply-scale-point')?.addEventListener('click', () => {
+  const xInput = document.getElementById('polygon-scale-point-x') as HTMLInputElement;
+  const yInput = document.getElementById('polygon-scale-point-y') as HTMLInputElement;
+  
+  if (!xInput || !yInput) return;
+  
+  const x = parseFloat(xInput.value);
+  const y = parseFloat(yInput.value);
+  
+  if (isNaN(x) || isNaN(y)) {
+    alert('Please enter valid scale point coordinates');
+    return;
+  }
+  
+  interactionManager.setScalePointFromInput(x, y);
+});
+
+document.getElementById('btn-polygon-scale')?.addEventListener('click', () => {
+  const sxInput = document.getElementById('polygon-scale-sx') as HTMLInputElement;
+  const syInput = document.getElementById('polygon-scale-sy') as HTMLInputElement;
+  
+  if (!sxInput || !syInput) return;
+  
+  const sx = parseFloat(sxInput.value);
+  const sy = parseFloat(syInput.value);
+  
+  if (isNaN(sx) || isNaN(sy)) {
+    alert('Please enter valid scale factors');
+    return;
+  }
+  
+  if (sx === 0 || sy === 0) {
+    alert('Scale factors cannot be zero');
+    return;
+  }
+  
+  interactionManager.scaleSelectedPolygon(sx, sy);
+});
+
+document.getElementById('polygon-edit-filled')?.addEventListener('change', (e) => {
+  const checkbox = e.target as HTMLInputElement;
+  const selectedShape = drawingManager.getSelectedShape();
+  
+  if (selectedShape && selectedShape.getType() === 'polygon') {
+    const polygon = selectedShape as any; // Polygon type
+    polygon.setFilled(checkbox.checked);
+    drawingManager.redraw();
+  }
+});
+
+document.getElementById('close-polygon-btn')?.addEventListener('click', () => {
+  document.getElementById('polygon-panel')?.classList.add('hidden');
+  interactionManager.cancelPolygon();
+});
 
 window.addEventListener('show-rotate-cube-panel', (e) => {
   const customEvent = e as CustomEvent;

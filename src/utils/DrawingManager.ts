@@ -1,7 +1,9 @@
 import { Shape, ShapeFactory, type ShapeType, Line, Rectangle, Circle, Brush, RGBCube } from './shapes/Import';
+import { Polygon } from './shapes/Polygon';
+import { BezierCurve } from './shapes/BezierCurve';
 
 // Tool types
-export type Tool = 'select' | 'brush' | 'line' | 'rectangle' | 'circle' | 'rgbcube';
+export type Tool = 'select' | 'brush' | 'line' | 'rectangle' | 'circle' | 'rgbcube' | 'bezier' | 'polygon';
 
 export class DrawingManager {
   private shapes: Shape[] = [];
@@ -200,6 +202,14 @@ export class DrawingManager {
           const cube = shape as RGBCube;
           return cube.toJSON();
         }
+        case 'polygon': {
+          const polygon = shape as Polygon;
+          return polygon.toJSON();
+        }
+        case 'bezier': {
+          const bezier = shape as BezierCurve;
+          return bezier.toJSON();
+        }
         default:
           return baseData;
       }
@@ -223,9 +233,12 @@ export class DrawingManager {
             break;
           }
           case 'rgbcube': shape = RGBCube.fromJSON(data); break;
+          case 'polygon': shape = Polygon.fromJSON(data); break;
+          case 'bezier': shape = BezierCurve.fromJSON(data); break;
         }
         if (shape) {
           shape.color = data.color || '#000000';
+          shape.id = data.id; // Preserve original ID
           this.shapes.push(shape);
         }
       });

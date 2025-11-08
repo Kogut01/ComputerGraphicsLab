@@ -5,9 +5,11 @@ import { Rectangle } from './Rectangle';
 import { Circle } from './Circle';
 import { Brush } from './Brush';
 import { RGBCube } from './RGBCube';
+import { BezierCurve, type Point } from './BezierCurve';
+import { Polygon, type Point as PolygonPoint } from './Polygon';
 
 // Shape types
-export type ShapeType = 'line' | 'rectangle' | 'circle' | 'brush' | 'rgbcube';
+export type ShapeType = 'line' | 'rectangle' | 'circle' | 'brush' | 'rgbcube' | 'bezier' | 'polygon';
 
 // Shape factory
 export class ShapeFactory {
@@ -28,8 +30,24 @@ export class ShapeFactory {
         const size = Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1), 50);
         return new RGBCube(x1, y1, size);
       }
+      case 'bezier':
+        // Start with two control points
+        return new BezierCurve([{ x: x1, y: y1 }, { x: x2, y: y2 }]);
+      case 'polygon':
+        // Start with first vertex
+        return new Polygon([{ x: x1, y: y1 }], '#000000');
       default:
         throw new Error(`Unknown shape type: ${type}`);
     }
+  }
+
+  // Helper method to create bezier with custom control points
+  static createBezierCurve(points: Point[], color: string = '#000000'): BezierCurve {
+    return new BezierCurve(points, color);
+  }
+
+  // Helper method to create polygon with custom vertices
+  static createPolygon(vertices: PolygonPoint[], color: string = '#000000', filled: boolean = false): Polygon {
+    return new Polygon(vertices, color, filled);
   }
 }

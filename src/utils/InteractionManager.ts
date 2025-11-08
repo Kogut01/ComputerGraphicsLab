@@ -1,7 +1,7 @@
 import { DrawingManager } from './DrawingManager';
 import { ToolManager } from './ToolManager';
 import { UIController } from './UIController';
-import { type ShapeType, ShapeFactory, Brush, RGBCube } from './shapes/Import';
+import { type ShapeType, ShapeFactory, Brush, RGBCube, BezierCurve, Polygon } from './shapes/Import';
 
 export class InteractionManager {
   private canvas: HTMLCanvasElement;
@@ -26,6 +26,20 @@ export class InteractionManager {
   private currentBrushPoints: { x: number; y: number }[] = [];
   private previewCube: RGBCube | null = null;
   private previewAnimationFrame: number | null = null;
+
+  // Bezier state
+  private draggedControlPointIndex: number = -1;
+  private selectedControlPointIndex: number = -1;
+
+  // Polygon state
+  private currentPolygonVertices: { x: number; y: number }[] = [];
+  private isCreatingPolygon: boolean = false;
+  private polygonPivotPoint: { x: number; y: number } | null = null;
+  private isRotatingPolygon: boolean = false;
+  private rotationStartAngle: number = 0;
+  private polygonScalePoint: { x: number; y: number } | null = null;
+  private isScalingPolygon: boolean = false;
+  private scaleStartDistance: number = 0;
   
   constructor(
     canvas: HTMLCanvasElement,
@@ -53,6 +67,10 @@ export class InteractionManager {
     this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
     this.canvas.addEventListener('mouseleave', () => this.handleMouseLeave());
     this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+    this.canvas.addEventListener('dblclick', (e) => this.handleDoubleClick(e));
+    
+    // Keyboard events for polygon
+    document.addEventListener('keydown', (e) => this.handleKeyDown(e));
   }
 
   // Event coords to canvas pixel coords
@@ -90,11 +108,88 @@ export class InteractionManager {
     }
     
     const pos = this.getWorldFromEvent(e);
+    
     if (currentTool === 'select') {
+      // Check if Alt is pressed and we have a polygon selected - start scaling
+      if (e.altKey) {
+        const selectedShape = this.drawingManager.getSelectedShape();
+        if (selectedShape && selectedShape.getType() === 'polygon' && this.polygonScalePoint) {
+          this.isScalingPolygon = true;
+          this.isDrawing = true;
+          // Calculate initial distance from scale point to mouse
+          const dx = pos.x - this.polygonScalePoint.x;
+          const dy = pos.y - this.polygonScalePoint.y;
+          this.scaleStartDistance = Math.sqrt(dx * dx + dy * dy);
+          this.canvas.style.cursor = 'grabbing';
+          this.statusText.textContent = 'Scaling polygon... Release to finish';
+          return;
+        }
+      }
+      
+      // Check if Ctrl is pressed and we have a polygon selected - start rotation
+      if (e.ctrlKey) {
+        const selectedShape = this.drawingManager.getSelectedShape();
+        if (selectedShape && selectedShape.getType() === 'polygon' && this.polygonPivotPoint) {
+          this.isRotatingPolygon = true;
+          this.isDrawing = true;
+          // Calculate initial angle from pivot to mouse
+          const dx = pos.x - this.polygonPivotPoint.x;
+          const dy = pos.y - this.polygonPivotPoint.y;
+          this.rotationStartAngle = Math.atan2(dy, dx) * 180 / Math.PI;
+          this.canvas.style.cursor = 'grabbing';
+          this.statusText.textContent = 'Rotating polygon... Release to finish';
+          return;
+        }
+      }
+      
+      // First check if we're clicking on a control point of an already selected Bezier curve
+      const selectedShape = this.drawingManager.getSelectedShape();
+      if (selectedShape && selectedShape.getType() === 'bezier') {
+        const bezier = selectedShape as BezierCurve;
+        const controlPointIndex = bezier.getControlPointAt(pos.x, pos.y);
+        if (controlPointIndex >= 0) {
+          // Clicking on a control point - start dragging
+          this.isDrawing = true;
+          this.draggedControlPointIndex = controlPointIndex;
+          this.selectedControlPointIndex = controlPointIndex;
+          bezier.selectedPointIndex = controlPointIndex;
+          this.statusText.textContent = `Dragging control point P${controlPointIndex}`;
+          this.drawingManager.redraw();
+          this.uiController.updateBezierPanel(bezier, controlPointIndex);
+          return;
+        }
+      }
+      
+      // Now try to select a shape at this position
       const wasSelected = this.drawingManager.selectShapeAt(pos.x, pos.y);
       if (wasSelected) {
         const shape = this.drawingManager.getSelectedShape();
+        
+        // Check again if it's a Bezier curve and if we clicked on a control point
+        if (shape && shape.getType() === 'bezier') {
+          const bezier = shape as BezierCurve;
+          const controlPointIndex = bezier.getControlPointAt(pos.x, pos.y);
+          if (controlPointIndex >= 0) {
+            // Clicking on a control point of newly selected curve
+            this.isDrawing = true;
+            this.draggedControlPointIndex = controlPointIndex;
+            this.selectedControlPointIndex = controlPointIndex;
+            bezier.selectedPointIndex = controlPointIndex;
+            this.statusText.textContent = `Dragging control point P${controlPointIndex}`;
+            this.drawingManager.redraw();
+            this.uiController.hideAllPanels();
+            const bezierPanel = document.getElementById('bezier-panel');
+            if (bezierPanel) {
+              bezierPanel.classList.remove('hidden');
+              this.uiController.updateBezierPanel(bezier, controlPointIndex);
+            }
+            return;
+          }
+        }
+        
+        // Not clicking on a control point, so start dragging the whole shape
         this.isDragging = true;
+        this.isDrawing = true;
         this.dragStartX = pos.x;
         this.dragStartY = pos.y;
         this.statusText.textContent = `Selected ${shape?.getType?.()}`;
@@ -103,6 +198,74 @@ export class InteractionManager {
         if (shape && shape.getType() === 'rgbcube') {
           this.uiController.hideAllPanels();
           this.uiController.showRotateCubePanel(shape);
+        } else if (shape && shape.getType() === 'bezier') {
+          this.uiController.hideAllPanels();
+          const bezierPanel = document.getElementById('bezier-panel');
+          if (bezierPanel) {
+            bezierPanel.classList.remove('hidden');
+            this.selectedControlPointIndex = -1; // Reset selection when selecting curve
+            const bezier = shape as BezierCurve;
+            bezier.selectedPointIndex = -1;
+            this.uiController.updateBezierPanel(bezier, -1);
+          }
+          this.uiController.hideRotateCubePanel();
+        } else if (shape && shape.getType() === 'polygon') {
+          this.uiController.hideAllPanels();
+          const polygonPanel = document.getElementById('polygon-panel');
+          if (polygonPanel) {
+            polygonPanel.classList.remove('hidden');
+            // Show edit and transform sections, hide create section
+            const createSection = document.getElementById('polygon-create-section');
+            const editSection = document.getElementById('polygon-edit-section');
+            const transformSection = document.getElementById('polygon-transform-section');
+            if (createSection) createSection.classList.add('hidden');
+            if (editSection) editSection.classList.remove('hidden');
+            if (transformSection) transformSection.classList.remove('hidden');
+            
+            // Update polygon info in panel
+            const polygon = shape as Polygon;
+            const verticesCount = document.getElementById('polygon-vertices-count');
+            if (verticesCount) {
+              verticesCount.textContent = `${polygon.vertices.length} vertices`;
+            }
+            
+            // Update filled checkbox
+            const filledCheckbox = document.getElementById('polygon-edit-filled') as HTMLInputElement;
+            if (filledCheckbox) {
+              filledCheckbox.checked = polygon.isFilled();
+            }
+            
+            // Initialize pivot point to polygon center if not set
+            if (!this.polygonPivotPoint) {
+              const coords = polygon.getCoordinates();
+              const centerX = (coords.x1 + coords.x2) / 2;
+              const centerY = (coords.y1 + coords.y2) / 2;
+              this.polygonPivotPoint = { x: centerX, y: centerY };
+              
+              const pivotXInput = document.getElementById('polygon-pivot-x') as HTMLInputElement;
+              const pivotYInput = document.getElementById('polygon-pivot-y') as HTMLInputElement;
+              if (pivotXInput) pivotXInput.value = Math.round(centerX).toString();
+              if (pivotYInput) pivotYInput.value = Math.round(centerY).toString();
+              
+              this.updatePivotDisplay();
+            }
+            
+            // Initialize scale point to polygon center if not set
+            if (!this.polygonScalePoint) {
+              const coords = polygon.getCoordinates();
+              const centerX = (coords.x1 + coords.x2) / 2;
+              const centerY = (coords.y1 + coords.y2) / 2;
+              this.polygonScalePoint = { x: centerX, y: centerY };
+              
+              const scalePointXInput = document.getElementById('polygon-scale-point-x') as HTMLInputElement;
+              const scalePointYInput = document.getElementById('polygon-scale-point-y') as HTMLInputElement;
+              if (scalePointXInput) scalePointXInput.value = Math.round(centerX).toString();
+              if (scalePointYInput) scalePointYInput.value = Math.round(centerY).toString();
+              
+              this.updateScalePointDisplay();
+            }
+          }
+          this.uiController.hideRotateCubePanel();
         } else if (shape && shape.getType() !== 'brush') {
           this.uiController.hideAllPanels();
           document.getElementById('edit-shape-panel')?.classList.remove('hidden');
@@ -119,6 +282,38 @@ export class InteractionManager {
         this.statusText.textContent = 'No shape selected';
         this.drawingManager.redraw();
       }
+    } else if (currentTool === 'bezier') {
+      // Check if there's already a selected bezier curve
+      const selectedShape = this.drawingManager.getSelectedShape();
+      if (selectedShape && selectedShape.getType() === 'bezier') {
+        // Add point to existing curve by clicking on canvas
+        const bezier = selectedShape as BezierCurve;
+        bezier.controlPoints.push({ x: pos.x, y: pos.y });
+        bezier.selectedPointIndex = -1;
+        this.selectedControlPointIndex = -1;
+        this.drawingManager.redraw();
+        this.uiController.updateBezierPanel(bezier, -1);
+        const degree = bezier.controlPoints.length - 1;
+        this.statusText.textContent = `Added point P${bezier.controlPoints.length - 1}. Degree: ${degree}`;
+      } else {
+        // Inform user to use the panel to create a new curve
+        this.statusText.textContent = 'Use the Bezier panel to create a new curve with specified degree and coordinates';
+      }
+    } else if (currentTool === 'polygon') {
+      // Add vertex to polygon
+      this.currentPolygonVertices.push({ x: pos.x, y: pos.y });
+      this.isCreatingPolygon = true;
+      
+      // Update preview counter
+      const vertexCountSpan = document.getElementById('polygon-vertex-count');
+      if (vertexCountSpan) {
+        vertexCountSpan.textContent = this.currentPolygonVertices.length.toString();
+      }
+      
+      // Draw preview
+      this.drawPolygonPreview();
+      
+      this.statusText.textContent = `Vertex ${this.currentPolygonVertices.length} added. Click to add more, press Enter or double-click to finish (min 3 vertices)`;
     } else {
       document.getElementById('draw-params-panel')?.classList.add('hidden');
       this.isDrawing = true;
@@ -164,6 +359,70 @@ export class InteractionManager {
     const currentTool = this.toolManager.getCurrentTool();
     if (!currentTool) return;
 
+    // Handle polygon scaling with mouse
+    if (this.isScalingPolygon && this.isDrawing && this.polygonScalePoint) {
+      const selectedShape = this.drawingManager.getSelectedShape();
+      if (selectedShape && selectedShape.getType() === 'polygon') {
+        // Calculate current distance from scale point to mouse
+        const dx = world.x - this.polygonScalePoint.x;
+        const dy = world.y - this.polygonScalePoint.y;
+        const currentDistance = Math.sqrt(dx * dx + dy * dy);
+        
+        // Calculate scale factor based on distance change
+        const scaleFactor = currentDistance / this.scaleStartDistance;
+        
+        // Apply scaling (uniform scaling)
+        const polygon = selectedShape as Polygon;
+        polygon.scale(scaleFactor, scaleFactor, this.polygonScalePoint.x, this.polygonScalePoint.y);
+        
+        // Update start distance for next frame
+        this.scaleStartDistance = currentDistance;
+        
+        this.drawingManager.redraw();
+        this.drawScalePoint();
+        this.statusText.textContent = `Scaling: ${scaleFactor.toFixed(2)}x`;
+        return;
+      }
+    }
+
+    // Handle polygon rotation with mouse
+    if (this.isRotatingPolygon && this.isDrawing && this.polygonPivotPoint) {
+      const selectedShape = this.drawingManager.getSelectedShape();
+      if (selectedShape && selectedShape.getType() === 'polygon') {
+        // Calculate current angle from pivot to mouse
+        const dx = world.x - this.polygonPivotPoint.x;
+        const dy = world.y - this.polygonPivotPoint.y;
+        const currentAngle = Math.atan2(dy, dx) * 180 / Math.PI;
+        
+        // Calculate angle difference
+        const angleDelta = currentAngle - this.rotationStartAngle;
+        
+        // Apply rotation
+        const polygon = selectedShape as Polygon;
+        polygon.rotate(angleDelta, this.polygonPivotPoint.x, this.polygonPivotPoint.y);
+        
+        // Update start angle for next frame
+        this.rotationStartAngle = currentAngle;
+        
+        this.drawingManager.redraw();
+        this.drawPivotPoint();
+        this.statusText.textContent = `Rotating: ${Math.round(angleDelta)}° (total rotation applied)`;
+        return;
+      }
+    }
+
+    // Handle Bezier control point dragging
+    if (this.draggedControlPointIndex >= 0 && this.isDrawing && currentTool === 'select') {
+      const selectedShape = this.drawingManager.getSelectedShape();
+      if (selectedShape && selectedShape.getType() === 'bezier') {
+        const bezier = selectedShape as BezierCurve;
+        bezier.updateControlPoint(this.draggedControlPointIndex, world.x, world.y);
+        this.drawingManager.redraw();
+        this.uiController.updateBezierPanel(bezier, this.selectedControlPointIndex);
+        return;
+      }
+    }
+
     if (this.isDragging && currentTool === 'select') {
       this.canvas.style.cursor = 'move';
       const deltaX = world.x - this.dragStartX;
@@ -183,13 +442,40 @@ export class InteractionManager {
       this.dragStartX = world.x;
       this.dragStartY = world.y;
       this.drawingManager.redraw();
+      
+      // Redraw pivot and scale points if we're moving a polygon
+      const currentShape = this.drawingManager.getSelectedShape();
+      if (currentShape && currentShape.getType() === 'polygon') {
+        if (this.polygonPivotPoint) {
+          this.drawPivotPoint();
+        }
+        if (this.polygonScalePoint) {
+          this.drawScalePoint();
+        }
+      }
       return;
     }
     
-    if (e.shiftKey) {
-      this.canvas.style.cursor = 'grab';
-    } else if (currentTool === 'select') {
-      this.canvas.style.cursor = this.drawingManager.isShapeAt(world.x, world.y) ? 'pointer' : 'default';
+    // Update cursor based on modifiers and context
+    if (currentTool === 'select') {
+      const selectedShape = this.drawingManager.getSelectedShape();
+      
+      // Alt over polygon with scale point = scale cursor
+      if (e.altKey && selectedShape && selectedShape.getType() === 'polygon' && this.polygonScalePoint) {
+        this.canvas.style.cursor = 'nwse-resize';
+      }
+      // Ctrl over polygon with pivot = rotate cursor
+      else if (e.ctrlKey && selectedShape && selectedShape.getType() === 'polygon' && this.polygonPivotPoint) {
+        this.canvas.style.cursor = 'grab';
+      }
+      // Pan cursor (Shift)
+      else if (e.shiftKey) {
+        this.canvas.style.cursor = 'grab';
+      }
+      // Default select cursor
+      else {
+        this.canvas.style.cursor = this.drawingManager.isShapeAt(world.x, world.y) ? 'pointer' : 'default';
+      }
     } else {
       this.canvas.style.cursor = 'crosshair';
     }
@@ -253,6 +539,24 @@ export class InteractionManager {
     const currentTool = this.toolManager.getCurrentTool();
     if (!currentTool) return;
 
+    // Handle polygon scaling end
+    if (this.isScalingPolygon) {
+      this.isScalingPolygon = false;
+      this.isDrawing = false;
+      this.canvas.style.cursor = 'default';
+      this.statusText.textContent = 'Scaling complete';
+      return;
+    }
+
+    // Handle polygon rotation end
+    if (this.isRotatingPolygon) {
+      this.isRotatingPolygon = false;
+      this.isDrawing = false;
+      this.canvas.style.cursor = 'default';
+      this.statusText.textContent = 'Rotation complete';
+      return;
+    }
+
     if (this.isPanning) {
       this.isPanning = false;
       const pos = this.getWorldFromEvent(e);
@@ -265,8 +569,18 @@ export class InteractionManager {
       return;
     }
     
+    // Reset Bezier control point dragging
+    if (this.draggedControlPointIndex >= 0) {
+      const pointIndex = this.draggedControlPointIndex;
+      this.draggedControlPointIndex = -1;
+      this.isDrawing = false;
+      this.statusText.textContent = `Control point P${pointIndex} moved (still selected)`;
+      return;
+    }
+
     if (this.isDragging) {
       this.isDragging = false;
+      this.isDrawing = false;
       this.statusText.textContent = 'Tool: Select';
       const pos = this.getWorldFromEvent(e);
       this.canvas.style.cursor = this.drawingManager.isShapeAt(pos.x, pos.y) ? 'pointer' : 'default';
@@ -299,7 +613,90 @@ export class InteractionManager {
       this.isDrawing = false;
     }
   }
-  
+
+  public createBezierFromPanel(degree: number, startX: number, startY: number): void {
+    const numPoints = degree + 1; // degree n requires n+1 control points
+    const points = [];
+    
+    // Create points horizontally from the start point
+    const horizontalSpacing = 50; // pixels between points
+    for (let i = 0; i < numPoints; i++) {
+      const x = startX + i * horizontalSpacing;
+      const y = startY;
+      points.push({ x, y });
+    }
+    
+    const currentColor = this.uiController.getCurrentColor();
+    const bezier = new BezierCurve(points, currentColor);
+    this.drawingManager.addShape(bezier);
+    this.drawingManager.selectShapeAt(startX, startY);
+    
+    // Show edit section, hide create section
+    const createSection = document.getElementById('bezier-create-section');
+    const editSection = document.getElementById('bezier-edit-section');
+    if (createSection) createSection.classList.add('hidden');
+    if (editSection) editSection.classList.remove('hidden');
+    
+    this.uiController.updateBezierPanel(bezier, -1);
+    this.statusText.textContent = `Created Bézier curve of degree ${degree} with ${numPoints} control points`;
+  }
+
+  public addBezierPoint(): void {
+    const bezierPanel = document.getElementById('bezier-panel');
+    if (bezierPanel && !bezierPanel.classList.contains('hidden')) {
+      const selectedShape = this.drawingManager.getSelectedShape();
+      if (selectedShape && selectedShape.getType() === 'bezier') {
+        const bezier = selectedShape as BezierCurve;
+        // Add a new point at the end
+        const lastPoint = bezier.controlPoints[bezier.controlPoints.length - 1];
+        bezier.controlPoints.push({ x: lastPoint.x + 50, y: lastPoint.y });
+        this.selectedControlPointIndex = -1;
+        bezier.selectedPointIndex = -1;
+        this.drawingManager.redraw();
+        this.uiController.updateBezierPanel(bezier, -1);
+      }
+    }
+  }
+
+  public removeSelectedBezierPoint(): void {
+    const bezierPanel = document.getElementById('bezier-panel');
+    if (bezierPanel && !bezierPanel.classList.contains('hidden')) {
+      const selectedShape = this.drawingManager.getSelectedShape();
+      if (selectedShape && selectedShape.getType() === 'bezier') {
+        const bezier = selectedShape as BezierCurve;
+        if (this.selectedControlPointIndex >= 0 && bezier.controlPoints.length > 2) {
+          bezier.controlPoints.splice(this.selectedControlPointIndex, 1);
+          this.selectedControlPointIndex = -1;
+          bezier.selectedPointIndex = -1;
+          this.drawingManager.redraw();
+          this.uiController.updateBezierPanel(bezier, -1);
+          this.statusText.textContent = 'Control point removed';
+        } else if (this.selectedControlPointIndex < 0) {
+          this.statusText.textContent = 'Please select a control point first';
+        } else {
+          this.statusText.textContent = 'Cannot remove point - minimum 2 points required';
+        }
+      }
+    }
+  }
+
+  public removeBezierPoint(): void {
+    const bezierPanel = document.getElementById('bezier-panel');
+    if (bezierPanel && !bezierPanel.classList.contains('hidden')) {
+      const selectedShape = this.drawingManager.getSelectedShape();
+      if (selectedShape && selectedShape.getType() === 'bezier') {
+        const bezier = selectedShape as BezierCurve;
+        if (bezier.controlPoints.length > 2) {
+          bezier.controlPoints.pop();
+          this.selectedControlPointIndex = -1;
+          bezier.selectedPointIndex = -1;
+          this.drawingManager.redraw();
+          this.uiController.updateBezierPanel(bezier, -1);
+        }
+      }
+    }
+  }
+
   private handleMouseLeave(): void {
     this.isDrawing = false;
     this.isDragging = false;
@@ -313,5 +710,341 @@ export class InteractionManager {
       this.previewAnimationFrame = null;
     }
     this.previewCube = null;
+  }
+
+  // Polygon methods
+  private handleDoubleClick(_e: MouseEvent): void {
+    const currentTool = this.toolManager.getCurrentTool();
+    if (currentTool === 'polygon' && this.isCreatingPolygon) {
+      this.finishPolygon();
+    }
+  }
+
+  private handleKeyDown(e: KeyboardEvent): void {
+    const currentTool = this.toolManager.getCurrentTool();
+    if (currentTool === 'polygon' && this.isCreatingPolygon) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        this.finishPolygon();
+      } else if (e.key === 'Backspace' || e.key === 'Delete') {
+        e.preventDefault();
+        this.removeLastPolygonVertex();
+      }
+    }
+  }
+
+  private drawPolygonPreview(): void {
+    if (this.currentPolygonVertices.length < 1) return;
+    
+    this.drawingManager.redraw();
+    
+    // Draw preview lines connecting vertices
+    this.ctx.save();
+    this.ctx.strokeStyle = '#0000ff';
+    this.ctx.fillStyle = '#ff0000';
+    this.ctx.lineWidth = 2;
+    
+    this.ctx.beginPath();
+    this.ctx.moveTo(this.currentPolygonVertices[0].x, this.currentPolygonVertices[0].y);
+    
+    for (let i = 1; i < this.currentPolygonVertices.length; i++) {
+      this.ctx.lineTo(this.currentPolygonVertices[i].x, this.currentPolygonVertices[i].y);
+    }
+    
+    this.ctx.stroke();
+    
+    // Draw vertices
+    this.currentPolygonVertices.forEach(vertex => {
+      this.ctx.beginPath();
+      this.ctx.arc(vertex.x, vertex.y, 5, 0, 2 * Math.PI);
+      this.ctx.fill();
+    });
+    
+    this.ctx.restore();
+  }
+
+  private finishPolygon(): void {
+    if (this.currentPolygonVertices.length < 3) {
+      this.statusText.textContent = 'A polygon must have at least 3 vertices. Add more points or use the panel.';
+      return;
+    }
+    
+    // Get fill checkbox state
+    const filledCheckbox = document.getElementById('polygon-filled-checkbox') as HTMLInputElement;
+    const filled = filledCheckbox ? filledCheckbox.checked : false;
+    
+    // Create polygon shape
+    const currentColor = this.uiController.getCurrentColor();
+    const polygon = ShapeFactory.createPolygon(this.currentPolygonVertices, currentColor, filled);
+    
+    this.drawingManager.addShape(polygon);
+    // Select the polygon by clicking on first vertex
+    this.drawingManager.selectShapeAt(this.currentPolygonVertices[0].x, this.currentPolygonVertices[0].y);
+    
+    // Reset state
+    this.currentPolygonVertices = [];
+    this.isCreatingPolygon = false;
+    
+    // Update vertex counter
+    const vertexCountSpan = document.getElementById('polygon-vertex-count');
+    if (vertexCountSpan) {
+      vertexCountSpan.textContent = '0';
+    }
+    
+    // Switch to edit mode
+    const createSection = document.getElementById('polygon-create-section');
+    const editSection = document.getElementById('polygon-edit-section');
+    const transformSection = document.getElementById('polygon-transform-section');
+    
+    if (createSection) createSection.classList.add('hidden');
+    if (editSection) editSection.classList.remove('hidden');
+    if (transformSection) transformSection.classList.remove('hidden');
+    
+    // Update polygon panel will be implemented in UIController
+    // this.uiController.updatePolygonPanel();
+    
+    this.statusText.textContent = `Polygon created with ${polygon.vertices.length} vertices`;
+    this.drawingManager.redraw();
+    
+    // Draw pivot point if set
+    if (this.polygonPivotPoint) {
+      this.drawPivotPoint();
+    }
+  }
+
+  public cancelPolygon(): void {
+    this.currentPolygonVertices = [];
+    this.isCreatingPolygon = false;
+    this.polygonPivotPoint = null;
+    
+    const vertexCountSpan = document.getElementById('polygon-vertex-count');
+    if (vertexCountSpan) {
+      vertexCountSpan.textContent = '0';
+    }
+    
+    this.canvas.style.cursor = 'default';
+    this.statusText.textContent = 'Polygon creation cancelled';
+    this.drawingManager.redraw();
+  }
+
+  public addPolygonVertexFromPanel(x: number, y: number): void {
+    this.currentPolygonVertices.push({ x, y });
+    this.isCreatingPolygon = true;
+    
+    // Update preview counter
+    const vertexCountSpan = document.getElementById('polygon-vertex-count');
+    if (vertexCountSpan) {
+      vertexCountSpan.textContent = this.currentPolygonVertices.length.toString();
+    }
+    
+    // Draw preview
+    this.drawPolygonPreview();
+    
+    this.statusText.textContent = `Vertex ${this.currentPolygonVertices.length} added from panel. Click to add more, press Enter or double-click to finish (min 3 vertices)`;
+  }
+
+  public finishPolygonFromPanel(): void {
+    this.finishPolygon();
+  }
+
+  public removeLastPolygonVertex(): void {
+    if (this.currentPolygonVertices.length > 0) {
+      this.currentPolygonVertices.pop();
+      
+      // Update preview counter
+      const vertexCountSpan = document.getElementById('polygon-vertex-count');
+      if (vertexCountSpan) {
+        vertexCountSpan.textContent = this.currentPolygonVertices.length.toString();
+      }
+      
+      // Redraw preview
+      this.drawPolygonPreview();
+      
+      this.statusText.textContent = `Removed last vertex. Current vertices: ${this.currentPolygonVertices.length}`;
+    } else {
+      this.statusText.textContent = 'No vertices to remove';
+    }
+  }
+
+  public translateSelectedPolygon(dx: number, dy: number): void {
+    const selectedShape = this.drawingManager.getSelectedShape();
+    if (selectedShape && selectedShape.getType() === 'polygon') {
+      // Use the Polygon's translate method (homogeneous coordinates)
+      const polygon = selectedShape as Polygon;
+      polygon.translate(dx, dy);
+      
+      this.drawingManager.redraw();
+      this.statusText.textContent = `Polygon translated by (${dx}, ${dy}) using homogeneous coordinates`;
+      
+      // Reset translation inputs
+      const dxInput = document.getElementById('polygon-translate-dx') as HTMLInputElement;
+      const dyInput = document.getElementById('polygon-translate-dy') as HTMLInputElement;
+      if (dxInput) dxInput.value = '0';
+      if (dyInput) dyInput.value = '0';
+    } else {
+      this.statusText.textContent = 'No polygon selected';
+    }
+  }
+
+  public setPivotFromInput(x: number, y: number): void {
+    const selectedShape = this.drawingManager.getSelectedShape();
+    if (selectedShape && selectedShape.getType() === 'polygon') {
+      this.polygonPivotPoint = { x, y };
+      this.updatePivotDisplay();
+      this.drawingManager.redraw();
+      this.drawPivotPoint();
+      this.statusText.textContent = `Pivot point set to (${Math.round(x)}, ${Math.round(y)})`;
+    } else {
+      this.statusText.textContent = 'No polygon selected';
+    }
+  }
+
+  public rotateSelectedPolygon(angle: number): void {
+    const selectedShape = this.drawingManager.getSelectedShape();
+    if (!selectedShape || selectedShape.getType() !== 'polygon') {
+      this.statusText.textContent = 'No polygon selected';
+      return;
+    }
+
+    if (!this.polygonPivotPoint) {
+      this.statusText.textContent = 'Please set a pivot point first';
+      return;
+    }
+
+    const polygon = selectedShape as Polygon;
+    polygon.rotate(angle, this.polygonPivotPoint.x, this.polygonPivotPoint.y);
+    
+    this.drawingManager.redraw();
+    this.drawPivotPoint();
+    this.statusText.textContent = `Polygon rotated by ${angle}° around pivot (${Math.round(this.polygonPivotPoint.x)}, ${Math.round(this.polygonPivotPoint.y)})`;
+    
+    // Reset angle input
+    const angleInput = document.getElementById('polygon-rotate-angle') as HTMLInputElement;
+    if (angleInput) angleInput.value = '0';
+  }
+
+  private updatePivotDisplay(): void {
+    const pivotDisplay = document.getElementById('polygon-pivot-display');
+    if (pivotDisplay) {
+      if (this.polygonPivotPoint) {
+        pivotDisplay.textContent = `(${Math.round(this.polygonPivotPoint.x)}, ${Math.round(this.polygonPivotPoint.y)})`;
+      } else {
+        pivotDisplay.textContent = 'Not set';
+      }
+    }
+  }
+
+  public setScalePointFromInput(x: number, y: number): void {
+    const selectedShape = this.drawingManager.getSelectedShape();
+    if (selectedShape && selectedShape.getType() === 'polygon') {
+      this.polygonScalePoint = { x, y };
+      this.updateScalePointDisplay();
+      this.drawingManager.redraw();
+      this.drawScalePoint();
+      this.statusText.textContent = `Scale point set to (${Math.round(x)}, ${Math.round(y)})`;
+    } else {
+      this.statusText.textContent = 'No polygon selected';
+    }
+  }
+
+  public scaleSelectedPolygon(sx: number, sy: number): void {
+    const selectedShape = this.drawingManager.getSelectedShape();
+    if (!selectedShape || selectedShape.getType() !== 'polygon') {
+      this.statusText.textContent = 'No polygon selected';
+      return;
+    }
+
+    if (!this.polygonScalePoint) {
+      this.statusText.textContent = 'Please set a scale point first';
+      return;
+    }
+
+    const polygon = selectedShape as Polygon;
+    polygon.scale(sx, sy, this.polygonScalePoint.x, this.polygonScalePoint.y);
+    
+    this.drawingManager.redraw();
+    this.drawScalePoint();
+    this.statusText.textContent = `Polygon scaled by (${sx}, ${sy}) around point (${Math.round(this.polygonScalePoint.x)}, ${Math.round(this.polygonScalePoint.y)})`;
+    
+    // Reset scale inputs
+    const sxInput = document.getElementById('polygon-scale-sx') as HTMLInputElement;
+    const syInput = document.getElementById('polygon-scale-sy') as HTMLInputElement;
+    if (sxInput) sxInput.value = '1';
+    if (syInput) syInput.value = '1';
+  }
+
+  private updateScalePointDisplay(): void {
+    const scalePointDisplay = document.getElementById('polygon-scale-point-display');
+    if (scalePointDisplay) {
+      if (this.polygonScalePoint) {
+        scalePointDisplay.textContent = `(${Math.round(this.polygonScalePoint.x)}, ${Math.round(this.polygonScalePoint.y)})`;
+      } else {
+        scalePointDisplay.textContent = 'Not set';
+      }
+    }
+  }
+
+  private drawPivotPoint(): void {
+    if (!this.polygonPivotPoint) return;
+
+    this.ctx.save();
+    const { x: panX, y: panY } = this.drawingManager.getPan();
+    const zoom = this.drawingManager.getZoom();
+    this.ctx.translate(panX, panY);
+    this.ctx.scale(zoom, zoom);
+
+    // Draw crosshair for pivot point
+    const size = 10;
+    this.ctx.strokeStyle = '#ff00ff'; // Magenta
+    this.ctx.lineWidth = 2;
+    this.ctx.beginPath();
+    // Horizontal line
+    this.ctx.moveTo(this.polygonPivotPoint.x - size, this.polygonPivotPoint.y);
+    this.ctx.lineTo(this.polygonPivotPoint.x + size, this.polygonPivotPoint.y);
+    // Vertical line
+    this.ctx.moveTo(this.polygonPivotPoint.x, this.polygonPivotPoint.y - size);
+    this.ctx.lineTo(this.polygonPivotPoint.x, this.polygonPivotPoint.y + size);
+    this.ctx.stroke();
+
+    // Draw circle around pivot
+    this.ctx.beginPath();
+    this.ctx.arc(this.polygonPivotPoint.x, this.polygonPivotPoint.y, 5, 0, 2 * Math.PI);
+    this.ctx.stroke();
+
+    this.ctx.restore();
+  }
+
+  private drawScalePoint(): void {
+    if (!this.polygonScalePoint) return;
+
+    this.ctx.save();
+    const { x: panX, y: panY } = this.drawingManager.getPan();
+    const zoom = this.drawingManager.getZoom();
+    this.ctx.translate(panX, panY);
+    this.ctx.scale(zoom, zoom);
+
+    // Draw square for scale point (different from pivot crosshair)
+    const size = 8;
+    this.ctx.strokeStyle = '#00ff00'; // Green
+    this.ctx.lineWidth = 2;
+    this.ctx.beginPath();
+    // Draw square
+    this.ctx.rect(
+      this.polygonScalePoint.x - size / 2,
+      this.polygonScalePoint.y - size / 2,
+      size,
+      size
+    );
+    this.ctx.stroke();
+
+    // Draw diagonal lines inside square
+    this.ctx.beginPath();
+    this.ctx.moveTo(this.polygonScalePoint.x - size / 2, this.polygonScalePoint.y - size / 2);
+    this.ctx.lineTo(this.polygonScalePoint.x + size / 2, this.polygonScalePoint.y + size / 2);
+    this.ctx.moveTo(this.polygonScalePoint.x + size / 2, this.polygonScalePoint.y - size / 2);
+    this.ctx.lineTo(this.polygonScalePoint.x - size / 2, this.polygonScalePoint.y + size / 2);
+    this.ctx.stroke();
+
+    this.ctx.restore();
   }
 }
