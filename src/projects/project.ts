@@ -50,6 +50,8 @@ const panels = {
   imageProcessing: document.getElementById('image-processing-panel') as HTMLDivElement,
   histogram: document.getElementById('histogram-panel') as HTMLDivElement,
   bezier: document.getElementById('bezier-panel') as HTMLDivElement,
+  polygon: document.getElementById('polygon-panel') as HTMLDivElement,
+  morphological: document.getElementById('morphological-panel') as HTMLDivElement,
 };
 
 // Initialize managers

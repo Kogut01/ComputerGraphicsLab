@@ -247,7 +247,7 @@ export class InteractionManager {
               if (pivotXInput) pivotXInput.value = Math.round(centerX).toString();
               if (pivotYInput) pivotYInput.value = Math.round(centerY).toString();
               
-              this.updatePivotDisplay();
+              this.uiController.updatePolygonPivotDisplay(this.polygonPivotPoint);
             }
             
             // Initialize scale point to polygon center if not set
@@ -262,7 +262,7 @@ export class InteractionManager {
               if (scalePointXInput) scalePointXInput.value = Math.round(centerX).toString();
               if (scalePointYInput) scalePointYInput.value = Math.round(centerY).toString();
               
-              this.updateScalePointDisplay();
+              this.uiController.updatePolygonScalePointDisplay(this.polygonScalePoint);
             }
           }
           this.uiController.hideRotateCubePanel();
@@ -305,10 +305,7 @@ export class InteractionManager {
       this.isCreatingPolygon = true;
       
       // Update preview counter
-      const vertexCountSpan = document.getElementById('polygon-vertex-count');
-      if (vertexCountSpan) {
-        vertexCountSpan.textContent = this.currentPolygonVertices.length.toString();
-      }
+      this.uiController.updatePolygonVertexCount(this.currentPolygonVertices.length);
       
       // Draw preview
       this.drawPolygonPreview();
@@ -786,10 +783,7 @@ export class InteractionManager {
     this.isCreatingPolygon = false;
     
     // Update vertex counter
-    const vertexCountSpan = document.getElementById('polygon-vertex-count');
-    if (vertexCountSpan) {
-      vertexCountSpan.textContent = '0';
-    }
+    this.uiController.updatePolygonVertexCount(0);
     
     // Switch to edit mode
     const createSection = document.getElementById('polygon-create-section');
@@ -817,10 +811,7 @@ export class InteractionManager {
     this.isCreatingPolygon = false;
     this.polygonPivotPoint = null;
     
-    const vertexCountSpan = document.getElementById('polygon-vertex-count');
-    if (vertexCountSpan) {
-      vertexCountSpan.textContent = '0';
-    }
+    this.uiController.updatePolygonVertexCount(0);
     
     this.canvas.style.cursor = 'default';
     this.statusText.textContent = 'Polygon creation cancelled';
@@ -832,10 +823,7 @@ export class InteractionManager {
     this.isCreatingPolygon = true;
     
     // Update preview counter
-    const vertexCountSpan = document.getElementById('polygon-vertex-count');
-    if (vertexCountSpan) {
-      vertexCountSpan.textContent = this.currentPolygonVertices.length.toString();
-    }
+    this.uiController.updatePolygonVertexCount(this.currentPolygonVertices.length);
     
     // Draw preview
     this.drawPolygonPreview();
@@ -852,10 +840,7 @@ export class InteractionManager {
       this.currentPolygonVertices.pop();
       
       // Update preview counter
-      const vertexCountSpan = document.getElementById('polygon-vertex-count');
-      if (vertexCountSpan) {
-        vertexCountSpan.textContent = this.currentPolygonVertices.length.toString();
-      }
+      this.uiController.updatePolygonVertexCount(this.currentPolygonVertices.length);
       
       // Redraw preview
       this.drawPolygonPreview();
@@ -890,7 +875,7 @@ export class InteractionManager {
     const selectedShape = this.drawingManager.getSelectedShape();
     if (selectedShape && selectedShape.getType() === 'polygon') {
       this.polygonPivotPoint = { x, y };
-      this.updatePivotDisplay();
+      this.uiController.updatePolygonPivotDisplay(this.polygonPivotPoint);
       this.drawingManager.redraw();
       this.drawPivotPoint();
       this.statusText.textContent = `Pivot point set to (${Math.round(x)}, ${Math.round(y)})`;
@@ -923,22 +908,11 @@ export class InteractionManager {
     if (angleInput) angleInput.value = '0';
   }
 
-  private updatePivotDisplay(): void {
-    const pivotDisplay = document.getElementById('polygon-pivot-display');
-    if (pivotDisplay) {
-      if (this.polygonPivotPoint) {
-        pivotDisplay.textContent = `(${Math.round(this.polygonPivotPoint.x)}, ${Math.round(this.polygonPivotPoint.y)})`;
-      } else {
-        pivotDisplay.textContent = 'Not set';
-      }
-    }
-  }
-
   public setScalePointFromInput(x: number, y: number): void {
     const selectedShape = this.drawingManager.getSelectedShape();
     if (selectedShape && selectedShape.getType() === 'polygon') {
       this.polygonScalePoint = { x, y };
-      this.updateScalePointDisplay();
+      this.uiController.updatePolygonScalePointDisplay(this.polygonScalePoint);
       this.drawingManager.redraw();
       this.drawScalePoint();
       this.statusText.textContent = `Scale point set to (${Math.round(x)}, ${Math.round(y)})`;
@@ -971,17 +945,6 @@ export class InteractionManager {
     const syInput = document.getElementById('polygon-scale-sy') as HTMLInputElement;
     if (sxInput) sxInput.value = '1';
     if (syInput) syInput.value = '1';
-  }
-
-  private updateScalePointDisplay(): void {
-    const scalePointDisplay = document.getElementById('polygon-scale-point-display');
-    if (scalePointDisplay) {
-      if (this.polygonScalePoint) {
-        scalePointDisplay.textContent = `(${Math.round(this.polygonScalePoint.x)}, ${Math.round(this.polygonScalePoint.y)})`;
-      } else {
-        scalePointDisplay.textContent = 'Not set';
-      }
-    }
   }
 
   private drawPivotPoint(): void {

@@ -2,6 +2,7 @@ import { DrawingManager } from './DrawingManager';
 import { Line, Rectangle, Circle, BezierCurve } from './shapes/Import';
 import { parsePPM } from './PPMLoader';
 import { ImageProcessor } from './ImageProcessor';
+import { MorphologicalFilters } from './MorphologicalFilters';
 
 export class UIController {
   private panels: {
@@ -14,13 +15,16 @@ export class UIController {
     imageProcessing: HTMLElement;
     histogram: HTMLElement;
     bezier: HTMLElement;
+    polygon: HTMLElement;
+    morphological: HTMLElement;
   };
   private drawingManager: DrawingManager;
   private statusText: HTMLElement;
+  private currentStructuringElement: number[][] = MorphologicalFilters.createDefaultStructuringElement();
   
   // Initialize UI controller with all panels and event handlers
   constructor(
-    panels: { drawParams: HTMLElement; file: HTMLElement; editShape: HTMLElement; zoom: HTMLElement, colorPicker: HTMLElement, rotateCube: HTMLElement, imageProcessing: HTMLElement, histogram: HTMLElement, bezier: HTMLElement },
+    panels: { drawParams: HTMLElement; file: HTMLElement; editShape: HTMLElement; zoom: HTMLElement, colorPicker: HTMLElement, rotateCube: HTMLElement, imageProcessing: HTMLElement, histogram: HTMLElement, bezier: HTMLElement, polygon: HTMLElement, morphological: HTMLElement },
     drawingManager: DrawingManager,
     statusText: HTMLElement
   ) {
@@ -33,6 +37,7 @@ export class UIController {
     this.updateZoomDisplay();
     this.updateColorPickerDisplays();
     this.initializeImageProcessing();
+    this.initializeMorphologicalFilters();
   }
 
   // Setup all panel toggle buttons and their event handlers
@@ -47,6 +52,8 @@ export class UIController {
       this.panels.imageProcessing.classList.add('hidden');
       this.panels.histogram.classList.add('hidden');
       this.panels.bezier.classList.add('hidden');
+      this.panels.polygon.classList.add('hidden');
+      this.panels.morphological.classList.add('hidden');
 
       this.statusText.textContent = `Draw Parameters Panel opened`;
     });
@@ -65,6 +72,8 @@ export class UIController {
       this.panels.imageProcessing.classList.add('hidden');
       this.panels.histogram.classList.add('hidden');
       this.panels.bezier.classList.add('hidden');
+      this.panels.polygon.classList.add('hidden');
+      this.panels.morphological.classList.add('hidden');
 
       this.statusText.textContent = `File Panel opened`;
     });
@@ -89,6 +98,8 @@ export class UIController {
       this.panels.imageProcessing.classList.add('hidden');
       this.panels.histogram.classList.add('hidden');
       this.panels.bezier.classList.add('hidden');
+      this.panels.polygon.classList.add('hidden');
+      this.panels.morphological.classList.add('hidden');
 
       this.statusText.textContent = `Zoom: Hold Shift and drag to pan`;
       this.updateZoomDisplay();
@@ -132,6 +143,8 @@ export class UIController {
       this.panels.imageProcessing.classList.add('hidden');
       this.panels.histogram.classList.add('hidden');
       this.panels.bezier.classList.add('hidden');
+      this.panels.polygon.classList.add('hidden');
+      this.panels.morphological.classList.add('hidden');
 
       this.statusText.textContent = `Color Picker opened`;
     });
@@ -154,6 +167,8 @@ export class UIController {
       this.panels.rotateCube.classList.add('hidden');
       this.panels.histogram.classList.add('hidden');
       this.panels.bezier.classList.add('hidden');
+      this.panels.polygon.classList.add('hidden');
+      this.panels.morphological.classList.add('hidden');
 
       this.statusText.textContent = `Image Processing panel opened`;
     });
@@ -176,6 +191,8 @@ export class UIController {
       this.panels.rotateCube.classList.add('hidden');
       this.panels.imageProcessing.classList.add('hidden');
       this.panels.bezier.classList.add('hidden');
+      this.panels.polygon.classList.add('hidden');
+      this.panels.morphological.classList.add('hidden');
 
       // Auto-display histogram when panel opens
       if (!this.panels.histogram.classList.contains('hidden')) {
@@ -191,6 +208,34 @@ export class UIController {
 
     document.getElementById('close-bezier-btn')?.addEventListener('click', () => {
       this.panels.bezier.classList.add('hidden');
+    });
+
+    document.getElementById('close-polygon-btn')?.addEventListener('click', () => {
+      this.panels.polygon.classList.add('hidden');
+    });
+
+    document.getElementById('morphological-btn')?.addEventListener('click', () => {
+      if (!this.drawingManager.hasImageData()) {
+        this.statusText.textContent = 'Najpierw wczytaj obraz (File > Load Drawing > JPEG)';
+        return;
+      }
+      this.panels.morphological.classList.toggle('hidden');
+      this.panels.drawParams.classList.add('hidden');
+      this.panels.file.classList.add('hidden');
+      this.panels.editShape.classList.add('hidden');
+      this.panels.zoom.classList.add('hidden');
+      this.panels.colorPicker.classList.add('hidden');
+      this.panels.rotateCube.classList.add('hidden');
+      this.panels.imageProcessing.classList.add('hidden');
+      this.panels.histogram.classList.add('hidden');
+      this.panels.bezier.classList.add('hidden');
+      this.panels.polygon.classList.add('hidden');
+
+      this.statusText.textContent = `Morphological Filters panel opened`;
+    });
+
+    document.getElementById('close-morphological-btn')?.addEventListener('click', () => {
+      this.panels.morphological.classList.add('hidden');
     });
 
     document.getElementById('draw-shape-btn')?.addEventListener('click', () => this.handleDrawShapeFromParams());
@@ -1234,5 +1279,223 @@ export class UIController {
       instruction.textContent = '👆 Click any control point on canvas to select and edit it.';
       container.appendChild(instruction);
     }
+  }
+
+  // Update polygon vertex count display during creation
+  public updatePolygonVertexCount(count: number): void {
+    const countSpan = document.getElementById('polygon-vertex-count');
+    if (countSpan) {
+      countSpan.textContent = count.toString();
+    }
+  }
+
+  // Update polygon pivot point display
+  public updatePolygonPivotDisplay(pivot: { x: number; y: number } | null): void {
+    const display = document.getElementById('polygon-pivot-display');
+    if (display) {
+      if (pivot) {
+        display.textContent = `(${Math.round(pivot.x)}, ${Math.round(pivot.y)})`;
+      } else {
+        display.textContent = 'Not set';
+      }
+    }
+  }
+
+  // Update polygon scale point display
+  public updatePolygonScalePointDisplay(scalePoint: { x: number; y: number } | null): void {
+    const display = document.getElementById('polygon-scale-point-display');
+    if (display) {
+      if (scalePoint) {
+        display.textContent = `(${Math.round(scalePoint.x)}, ${Math.round(scalePoint.y)})`;
+      } else {
+        display.textContent = 'Not set';
+      }
+    }
+  }
+
+  // Initialize morphological filters panel
+  private initializeMorphologicalFilters(): void {
+    const sePresetSelect = document.getElementById('morph-se-preset') as HTMLSelectElement;
+    const customContainer = document.getElementById('morph-custom-se-container') as HTMLElement;
+    const seInput = document.getElementById('morph-se-input') as HTMLTextAreaElement;
+    const sePreview = document.getElementById('morph-se-preview') as HTMLElement;
+
+    // Update SE preview display
+    const updateSEPreview = () => {
+      if (sePreview) {
+        const previewHtml = this.currentStructuringElement
+          .map(row => row.join(' '))
+          .join('<br>');
+        sePreview.innerHTML = previewHtml;
+      }
+    };
+
+    // Handle preset selection
+    sePresetSelect?.addEventListener('change', () => {
+      const preset = sePresetSelect.value;
+      
+      if (preset === 'custom') {
+        customContainer?.classList.remove('hidden');
+        // Fill textarea with current SE
+        if (seInput) {
+          seInput.value = MorphologicalFilters.structuringElementToString(this.currentStructuringElement);
+        }
+      } else {
+        customContainer?.classList.add('hidden');
+        
+        // Create SE based on preset
+        switch (preset) {
+          case 'square3':
+            this.currentStructuringElement = MorphologicalFilters.createSquareStructuringElement(3);
+            break;
+          case 'square5':
+            this.currentStructuringElement = MorphologicalFilters.createSquareStructuringElement(5);
+            break;
+          case 'cross3':
+            this.currentStructuringElement = MorphologicalFilters.createCrossStructuringElement(3);
+            break;
+          case 'cross5':
+            this.currentStructuringElement = MorphologicalFilters.createCrossStructuringElement(5);
+            break;
+          case 'diamond3':
+            this.currentStructuringElement = MorphologicalFilters.createDiamondStructuringElement(3);
+            break;
+          case 'diamond5':
+            this.currentStructuringElement = MorphologicalFilters.createDiamondStructuringElement(5);
+            break;
+        }
+        
+        updateSEPreview();
+        this.statusText.textContent = `Structuring element changed: ${preset}`;
+      }
+    });
+
+    // Handle custom SE apply
+    document.getElementById('btn-apply-custom-se')?.addEventListener('click', () => {
+      if (!seInput) return;
+      
+      const parsed = MorphologicalFilters.parseStructuringElement(seInput.value);
+      if (parsed) {
+        this.currentStructuringElement = parsed;
+        updateSEPreview();
+        this.statusText.textContent = `Custom structuring element applied (${parsed.length}×${parsed[0].length})`;
+      } else {
+        this.statusText.textContent = 'Error: Invalid format. Use: 1,1,1;1,1,1;1,1,1 (size must be odd)';
+      }
+    });
+
+    // Dilation button
+    document.getElementById('btn-morph-dilate')?.addEventListener('click', () => {
+      this.applyMorphologicalFilter('dilate');
+    });
+
+    // Erosion button
+    document.getElementById('btn-morph-erode')?.addEventListener('click', () => {
+      this.applyMorphologicalFilter('erode');
+    });
+
+    // Opening button
+    document.getElementById('btn-morph-open')?.addEventListener('click', () => {
+      this.applyMorphologicalFilter('open');
+    });
+
+    // Closing button
+    document.getElementById('btn-morph-close')?.addEventListener('click', () => {
+      this.applyMorphologicalFilter('close');
+    });
+
+    // Thinning button
+    document.getElementById('btn-morph-thin')?.addEventListener('click', () => {
+      this.applyHitOrMissFilter('thin');
+    });
+
+    // Thickening button
+    document.getElementById('btn-morph-thicken')?.addEventListener('click', () => {
+      this.applyHitOrMissFilter('thicken');
+    });
+
+    // Reset button
+    document.getElementById('btn-morph-reset')?.addEventListener('click', () => {
+      this.drawingManager.resetToOriginalImage();
+      this.statusText.textContent = 'Image reset to original';
+    });
+
+    // Initialize preview
+    updateSEPreview();
+  }
+
+  // Apply morphological filter to the image
+  private applyMorphologicalFilter(filterType: 'dilate' | 'erode' | 'open' | 'close'): void {
+    const imageData = this.drawingManager.getCurrentImageData();
+    if (!imageData) {
+      this.statusText.textContent = 'No image to process';
+      return;
+    }
+
+    const grayscaleCheckbox = document.getElementById('morph-grayscale') as HTMLInputElement;
+    const applyGrayscale = grayscaleCheckbox?.checked ?? false;
+
+    let result: ImageData;
+    const filterNames = {
+      'dilate': 'Dilation',
+      'erode': 'Erosion',
+      'open': 'Opening',
+      'close': 'Closing'
+    };
+
+    switch (filterType) {
+      case 'dilate':
+        result = MorphologicalFilters.dilate(imageData, this.currentStructuringElement, applyGrayscale);
+        break;
+      case 'erode':
+        result = MorphologicalFilters.erode(imageData, this.currentStructuringElement, applyGrayscale);
+        break;
+      case 'open':
+        result = MorphologicalFilters.open(imageData, this.currentStructuringElement, applyGrayscale);
+        break;
+      case 'close':
+        result = MorphologicalFilters.close(imageData, this.currentStructuringElement, applyGrayscale);
+        break;
+    }
+
+    this.drawingManager.updateImageData(result);
+    this.statusText.textContent = `${filterNames[filterType]} applied (SE: ${this.currentStructuringElement.length}×${this.currentStructuringElement[0].length})`;
+  }
+
+  // Apply Hit-or-Miss based filter (thinning/thickening)
+  private applyHitOrMissFilter(filterType: 'thin' | 'thicken'): void {
+    const imageData = this.drawingManager.getCurrentImageData();
+    if (!imageData) {
+      this.statusText.textContent = 'No image to process';
+      return;
+    }
+
+    const iterationsInput = document.getElementById('morph-iterations') as HTMLInputElement;
+    const iterations = parseInt(iterationsInput?.value ?? '1', 10);
+    const maxIterations = isNaN(iterations) || iterations < 0 ? 1 : iterations;
+
+    let result: ImageData;
+    const filterNames = {
+      'thin': 'Thinning',
+      'thicken': 'Thickening'
+    };
+
+    this.statusText.textContent = `Applying ${filterNames[filterType]}... (this may take a moment)`;
+
+    // Use setTimeout to allow UI to update before processing
+    setTimeout(() => {
+      switch (filterType) {
+        case 'thin':
+          result = MorphologicalFilters.thin(imageData, maxIterations);
+          break;
+        case 'thicken':
+          result = MorphologicalFilters.thicken(imageData, maxIterations);
+          break;
+      }
+
+      this.drawingManager.updateImageData(result);
+      const iterText = maxIterations === 0 ? 'until convergence' : `${maxIterations} iteration(s)`;
+      this.statusText.textContent = `${filterNames[filterType]} applied (${iterText})`;
+    }, 10);
   }
 }

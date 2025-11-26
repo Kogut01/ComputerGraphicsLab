@@ -36,6 +36,9 @@
         <button id="histogram-btn" class="xp-button">
           Histogram and Binarization
         </button>
+        <button id="morphological-btn" class="xp-button">
+          Morphological Filters
+        </button>
       </div>
 
       <!-- Toolbox -->
@@ -557,6 +560,125 @@
                 Close
               </button>
             </div>
+          </div>
+        </div>
+
+        <!-- Morphological Filters Panel -->
+        <div id="morphological-panel" class="hidden bg-[#ECE9D8] border-t border-[#808080] px-2 py-2">
+          <div class="flex flex-col gap-3 text-xs">
+            
+            <!-- Section 1: Structuring Element Definition -->
+            <div class="flex flex-col gap-2">
+              <span class="font-bold">Structuring Element:</span>
+              
+              <div class="flex items-center gap-2 flex-wrap">
+                <label class="flex items-center gap-1">
+                  <span>Preset:</span>
+                  <select id="morph-se-preset" class="xp-select">
+                    <option value="square3">Square 3×3</option>
+                    <option value="square5">Square 5×5</option>
+                    <option value="cross3">Cross 3×3</option>
+                    <option value="cross5">Cross 5×5</option>
+                    <option value="diamond3">Diamond 3×3</option>
+                    <option value="diamond5">Diamond 5×5</option>
+                    <option value="custom">Custom...</option>
+                  </select>
+                </label>
+              </div>
+
+              <!-- Custom SE Input -->
+              <div id="morph-custom-se-container" class="hidden flex flex-col gap-1">
+                <label class="flex items-start gap-1">
+                  <span class="whitespace-nowrap">Definition:</span>
+                  <textarea id="morph-se-input" 
+                    class="xp-input font-mono text-[10px]" 
+                    rows="3" 
+                    cols="20"
+                    placeholder="1,1,1;1,1,1;1,1,1"
+                    title="Format: rows separated by semicolon, values by comma. Size must be odd."></textarea>
+                </label>
+                <button id="btn-apply-custom-se" class="xp-button text-green-600 text-[10px]">
+                  <i class="fas fa-check mr-1"></i>Apply Custom SE
+                </button>
+              </div>
+
+              <!-- SE Preview -->
+              <div class="flex items-start gap-2">
+                <span class="whitespace-nowrap">SE Preview:</span>
+                <div id="morph-se-preview" class="font-mono text-[10px] bg-white border border-[#808080] p-1 min-w-[60px]">
+                  1 1 1<br>1 1 1<br>1 1 1
+                </div>
+              </div>
+            </div>
+
+            <div class="border-t border-[#808080]"></div>
+
+            <!-- Section 2: Basic Filters -->
+            <div class="flex flex-col gap-2">
+              <span class="font-bold">Basic Morphological Filters:</span>
+              
+              <div class="flex items-center gap-2 flex-wrap">
+                <label class="flex items-center gap-1">
+                  <input type="checkbox" id="morph-grayscale" class="xp-checkbox">
+                  <span>Convert to grayscale</span>
+                </label>
+              </div>
+
+              <div class="flex items-center gap-2 flex-wrap">
+                <button id="btn-morph-dilate" class="xp-button">
+                  <i class="fas fa-expand-arrows-alt mr-1"></i>Dilation
+                </button>
+                <button id="btn-morph-erode" class="xp-button">
+                  <i class="fas fa-compress-arrows-alt mr-1"></i>Erosion
+                </button>
+                <button id="btn-morph-open" class="xp-button">
+                  <i class="fas fa-door-open mr-1"></i>Opening
+                </button>
+                <button id="btn-morph-close" class="xp-button">
+                  <i class="fas fa-door-closed mr-1"></i>Closing
+                </button>
+              </div>
+            </div>
+
+            <div class="border-t border-[#808080]"></div>
+
+            <!-- Section 3: Hit-or-Miss Operations -->
+            <div class="flex flex-col gap-2">
+              <span class="font-bold">Hit-or-Miss Operations:</span>
+              
+              <div class="flex items-center gap-2 flex-wrap">
+                <label class="flex items-center gap-1">
+                  <span>Iterations:</span>
+                  <input type="number" id="morph-iterations" class="xp-input w-16" value="1" min="1" max="100" title="Number of iterations (1-100)">
+                </label>
+              </div>
+
+              <div class="flex items-center gap-2 flex-wrap">
+                <button id="btn-morph-thin" class="xp-button">
+                  <i class="fas fa-compress mr-1"></i>Thinning
+                </button>
+                <button id="btn-morph-thicken" class="xp-button">
+                  <i class="fas fa-expand mr-1"></i>Thickening
+                </button>
+              </div>
+              
+              <p class="text-[10px] text-gray-600 italic">
+                Note: Hit-or-Miss operations work on binary images. Set iterations to 0 for full convergence.
+              </p>
+            </div>
+
+            <div class="border-t border-[#808080]"></div>
+
+            <!-- Section 4: Actions -->
+            <div class="flex items-center gap-2 flex-wrap">
+              <button id="btn-morph-reset" class="xp-button text-blue-600">
+                <i class="fas fa-undo mr-1"></i>Reset to Original
+              </button>
+              <button id="close-morphological-btn" class="xp-button text-red-500 font-bold">
+                Close
+              </button>
+            </div>
+
           </div>
         </div>
 
