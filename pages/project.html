@@ -39,6 +39,9 @@
         <button id="morphological-btn" class="xp-button">
           Morphological Filters
         </button>
+        <button id="green-analysis-btn" class="xp-button">
+          Green Area Analysis
+        </button>
       </div>
 
       <!-- Toolbox -->
@@ -617,12 +620,9 @@
             <div class="flex flex-col gap-2">
               <span class="font-bold">Basic Morphological Filters:</span>
               
-              <div class="flex items-center gap-2 flex-wrap">
-                <label class="flex items-center gap-1">
-                  <input type="checkbox" id="morph-grayscale" class="xp-checkbox">
-                  <span>Convert to grayscale</span>
-                </label>
-              </div>
+              <p class="text-[10px] text-gray-500">
+                Image will be automatically binarized before applying filters.
+              </p>
 
               <div class="flex items-center gap-2 flex-wrap">
                 <button id="btn-morph-dilate" class="xp-button">
@@ -675,6 +675,118 @@
                 <i class="fas fa-undo mr-1"></i>Reset to Original
               </button>
               <button id="close-morphological-btn" class="xp-button text-red-500 font-bold">
+                Close
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Green Area Analysis Panel -->
+        <div id="green-analysis-panel" class="hidden bg-[#ECE9D8] border-t border-[#808080] px-2 py-2">
+          <div class="flex flex-col gap-3 text-xs">
+            
+            <!-- Section 1: Color Preset Selection -->
+            <div class="flex flex-col gap-2">
+              <span class="font-bold">Color Area Analysis (HSV Color Space)</span>
+              <p class="text-gray-600 italic text-[10px]">
+                Detects color areas using HSV color space. Select a preset or define custom thresholds.
+              </p>
+              
+              <div class="flex items-center gap-2 flex-wrap">
+                <label class="flex items-center gap-1">
+                  <span>Color Preset:</span>
+                  <select id="color-preset-select" class="xp-select">
+                    <option value="green">Green</option>
+                    <option value="blue">Blue</option>
+                    <option value="red">Red</option>
+                    <option value="yellow">Yellow</option>
+                    <option value="brown">Brown</option>
+                    <option value="white">White</option>
+                    <option value="black">Black</option>
+                  </select>
+                </label>
+                <div id="color-preview-box" class="w-8 h-6 border-2 border-[#404040]" style="background-color: rgb(0, 255, 0);"></div>
+              </div>
+            </div>
+
+            <div class="border-t border-[#808080]"></div>
+
+            <!-- Section 2: Detection Thresholds -->
+            <div class="flex flex-col gap-2">
+              <span class="font-bold">Detection Thresholds (HSV):</span>
+              
+              <div class="flex items-center gap-2 flex-wrap">
+                <label class="flex items-center gap-1">
+                  <span>Hue Min:</span>
+                  <input type="number" id="green-hue-min" min="0" max="360" value="60" class="xp-input w-16">
+                </label>
+                <label class="flex items-center gap-1">
+                  <span>Hue Max:</span>
+                  <input type="number" id="green-hue-max" min="0" max="360" value="180" class="xp-input w-16">
+                </label>
+                <label class="flex items-center gap-1">
+                  <span>Sat Min:</span>
+                  <input type="number" id="green-sat-min" min="0" max="255" value="25" class="xp-input w-16">
+                </label>
+                <label class="flex items-center gap-1">
+                  <span>Sat Max:</span>
+                  <input type="number" id="green-sat-max" min="0" max="255" value="255" class="xp-input w-16">
+                </label>
+              </div>
+              <p class="text-[10px] text-gray-500">
+                Hue: 0°=Red, 60°=Yellow, 120°=Green, 180°=Cyan, 240°=Blue, 300°=Magenta
+              </p>
+            </div>
+
+            <div class="border-t border-[#808080]"></div>
+
+            <!-- Section 3: Results -->
+            <div class="flex flex-col gap-2">
+              <span class="font-bold">Results:</span>
+              
+              <div class="flex items-start gap-4 flex-wrap">
+                <!-- Stats -->
+                <div class="flex flex-col gap-1 min-w-[200px]">
+                  <div class="flex items-center gap-2">
+                    <span>Detected Area:</span>
+                    <span id="green-percentage" class="font-bold text-lg" style="color: rgb(0, 255, 0);">--%</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span>Matched Pixels:</span>
+                    <span id="green-pixel-count" style="color: rgb(0, 255, 0);">--</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span>Total Pixels:</span>
+                    <span id="total-pixel-count" class="text-gray-600">--</span>
+                  </div>
+                </div>
+
+                <!-- Visual Indicator -->
+                <div class="flex flex-col gap-1">
+                  <span>Coverage:</span>
+                  <div class="w-48 h-6 bg-gray-300 border border-[#808080] relative">
+                    <div id="green-coverage-bar" class="h-full transition-all duration-300" style="width: 0%; background-color: rgb(0, 255, 0);"></div>
+                    <span id="green-coverage-label" class="absolute inset-0 flex items-center justify-center text-xs font-bold">--%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="border-t border-[#808080]"></div>
+
+            <!-- Section 4: Actions -->
+            <div class="flex items-center gap-2 flex-wrap">
+              <button id="btn-analyze-green" class="xp-button text-green-600 font-bold">
+                <i class="fas fa-search mr-1"></i>Analyze Color
+              </button>
+              <button id="btn-show-green-mask" class="xp-button text-blue-600">
+                <i class="fas fa-eye mr-1"></i>Show Detection Mask
+              </button>
+              <button id="btn-green-reset" class="xp-button text-orange-600">
+                <i class="fas fa-undo mr-1"></i>Reset to Original
+              </button>
+              <button id="close-green-analysis-btn" class="xp-button text-red-500 font-bold">
                 Close
               </button>
             </div>

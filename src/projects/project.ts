@@ -52,6 +52,7 @@ const panels = {
   bezier: document.getElementById('bezier-panel') as HTMLDivElement,
   polygon: document.getElementById('polygon-panel') as HTMLDivElement,
   morphological: document.getElementById('morphological-panel') as HTMLDivElement,
+  greenAnalysis: document.getElementById('green-analysis-panel') as HTMLDivElement,
 };
 
 // Initialize managers

@@ -3,6 +3,8 @@ import { Line, Rectangle, Circle, BezierCurve } from './shapes/Import';
 import { parsePPM } from './PPMLoader';
 import { ImageProcessor } from './ImageProcessor';
 import { MorphologicalFilters } from './MorphologicalFilters';
+import { GreenAreaAnalyzer } from './GreenAreaAnalyzer';
+import type { GreenAnalysisResult } from './GreenAreaAnalyzer';
 
 export class UIController {
   private panels: {
@@ -17,14 +19,16 @@ export class UIController {
     bezier: HTMLElement;
     polygon: HTMLElement;
     morphological: HTMLElement;
+    greenAnalysis: HTMLElement;
   };
   private drawingManager: DrawingManager;
   private statusText: HTMLElement;
   private currentStructuringElement: number[][] = MorphologicalFilters.createDefaultStructuringElement();
+  private lastGreenAnalysisResult: GreenAnalysisResult | null = null;
   
   // Initialize UI controller with all panels and event handlers
   constructor(
-    panels: { drawParams: HTMLElement; file: HTMLElement; editShape: HTMLElement; zoom: HTMLElement, colorPicker: HTMLElement, rotateCube: HTMLElement, imageProcessing: HTMLElement, histogram: HTMLElement, bezier: HTMLElement, polygon: HTMLElement, morphological: HTMLElement },
+    panels: { drawParams: HTMLElement; file: HTMLElement; editShape: HTMLElement; zoom: HTMLElement, colorPicker: HTMLElement, rotateCube: HTMLElement, imageProcessing: HTMLElement, histogram: HTMLElement, bezier: HTMLElement, polygon: HTMLElement, morphological: HTMLElement, greenAnalysis: HTMLElement },
     drawingManager: DrawingManager,
     statusText: HTMLElement
   ) {
@@ -38,6 +42,7 @@ export class UIController {
     this.updateColorPickerDisplays();
     this.initializeImageProcessing();
     this.initializeMorphologicalFilters();
+    this.initializeGreenAreaAnalysis();
   }
 
   // Setup all panel toggle buttons and their event handlers
@@ -54,6 +59,7 @@ export class UIController {
       this.panels.bezier.classList.add('hidden');
       this.panels.polygon.classList.add('hidden');
       this.panels.morphological.classList.add('hidden');
+      this.panels.greenAnalysis.classList.add('hidden');
 
       this.statusText.textContent = `Draw Parameters Panel opened`;
     });
@@ -74,6 +80,7 @@ export class UIController {
       this.panels.bezier.classList.add('hidden');
       this.panels.polygon.classList.add('hidden');
       this.panels.morphological.classList.add('hidden');
+      this.panels.greenAnalysis.classList.add('hidden');
 
       this.statusText.textContent = `File Panel opened`;
     });
@@ -100,6 +107,7 @@ export class UIController {
       this.panels.bezier.classList.add('hidden');
       this.panels.polygon.classList.add('hidden');
       this.panels.morphological.classList.add('hidden');
+      this.panels.greenAnalysis.classList.add('hidden');
 
       this.statusText.textContent = `Zoom: Hold Shift and drag to pan`;
       this.updateZoomDisplay();
@@ -145,6 +153,7 @@ export class UIController {
       this.panels.bezier.classList.add('hidden');
       this.panels.polygon.classList.add('hidden');
       this.panels.morphological.classList.add('hidden');
+      this.panels.greenAnalysis.classList.add('hidden');
 
       this.statusText.textContent = `Color Picker opened`;
     });
@@ -169,6 +178,7 @@ export class UIController {
       this.panels.bezier.classList.add('hidden');
       this.panels.polygon.classList.add('hidden');
       this.panels.morphological.classList.add('hidden');
+      this.panels.greenAnalysis.classList.add('hidden');
 
       this.statusText.textContent = `Image Processing panel opened`;
     });
@@ -193,6 +203,7 @@ export class UIController {
       this.panels.bezier.classList.add('hidden');
       this.panels.polygon.classList.add('hidden');
       this.panels.morphological.classList.add('hidden');
+      this.panels.greenAnalysis.classList.add('hidden');
 
       // Auto-display histogram when panel opens
       if (!this.panels.histogram.classList.contains('hidden')) {
@@ -216,7 +227,7 @@ export class UIController {
 
     document.getElementById('morphological-btn')?.addEventListener('click', () => {
       if (!this.drawingManager.hasImageData()) {
-        this.statusText.textContent = 'Najpierw wczytaj obraz (File > Load Drawing > JPEG)';
+        this.statusText.textContent = 'Please load an image first (File > Load Drawing > JPEG)';
         return;
       }
       this.panels.morphological.classList.toggle('hidden');
@@ -230,12 +241,38 @@ export class UIController {
       this.panels.histogram.classList.add('hidden');
       this.panels.bezier.classList.add('hidden');
       this.panels.polygon.classList.add('hidden');
+      this.panels.greenAnalysis.classList.add('hidden');
 
       this.statusText.textContent = `Morphological Filters panel opened`;
     });
 
     document.getElementById('close-morphological-btn')?.addEventListener('click', () => {
       this.panels.morphological.classList.add('hidden');
+    });
+
+    document.getElementById('green-analysis-btn')?.addEventListener('click', () => {
+      if (!this.drawingManager.hasImageData()) {
+        this.statusText.textContent = 'Please load an image first (File > Load Drawing > JPEG)';
+        return;
+      }
+      this.panels.greenAnalysis.classList.toggle('hidden');
+      this.panels.drawParams.classList.add('hidden');
+      this.panels.file.classList.add('hidden');
+      this.panels.editShape.classList.add('hidden');
+      this.panels.zoom.classList.add('hidden');
+      this.panels.colorPicker.classList.add('hidden');
+      this.panels.rotateCube.classList.add('hidden');
+      this.panels.imageProcessing.classList.add('hidden');
+      this.panels.histogram.classList.add('hidden');
+      this.panels.bezier.classList.add('hidden');
+      this.panels.polygon.classList.add('hidden');
+      this.panels.morphological.classList.add('hidden');
+
+      this.statusText.textContent = `Green Area Analysis panel opened`;
+    });
+
+    document.getElementById('close-green-analysis-btn')?.addEventListener('click', () => {
+      this.panels.greenAnalysis.classList.add('hidden');
     });
 
     document.getElementById('draw-shape-btn')?.addEventListener('click', () => this.handleDrawShapeFromParams());
@@ -1426,14 +1463,15 @@ export class UIController {
 
   // Apply morphological filter to the image
   private applyMorphologicalFilter(filterType: 'dilate' | 'erode' | 'open' | 'close'): void {
-    const imageData = this.drawingManager.getCurrentImageData();
+    let imageData = this.drawingManager.getCurrentImageData();
     if (!imageData) {
       this.statusText.textContent = 'No image to process';
       return;
     }
 
-    const grayscaleCheckbox = document.getElementById('morph-grayscale') as HTMLInputElement;
-    const applyGrayscale = grayscaleCheckbox?.checked ?? false;
+    // Always binarize with fixed threshold
+    const threshold = 128;
+    imageData = MorphologicalFilters.binarize(imageData, threshold);
 
     let result: ImageData;
     const filterNames = {
@@ -1445,16 +1483,16 @@ export class UIController {
 
     switch (filterType) {
       case 'dilate':
-        result = MorphologicalFilters.dilate(imageData, this.currentStructuringElement, applyGrayscale);
+        result = MorphologicalFilters.dilate(imageData, this.currentStructuringElement, false);
         break;
       case 'erode':
-        result = MorphologicalFilters.erode(imageData, this.currentStructuringElement, applyGrayscale);
+        result = MorphologicalFilters.erode(imageData, this.currentStructuringElement, false);
         break;
       case 'open':
-        result = MorphologicalFilters.open(imageData, this.currentStructuringElement, applyGrayscale);
+        result = MorphologicalFilters.open(imageData, this.currentStructuringElement, false);
         break;
       case 'close':
-        result = MorphologicalFilters.close(imageData, this.currentStructuringElement, applyGrayscale);
+        result = MorphologicalFilters.close(imageData, this.currentStructuringElement, false);
         break;
     }
 
@@ -1464,11 +1502,15 @@ export class UIController {
 
   // Apply Hit-or-Miss based filter (thinning/thickening)
   private applyHitOrMissFilter(filterType: 'thin' | 'thicken'): void {
-    const imageData = this.drawingManager.getCurrentImageData();
+    let imageData = this.drawingManager.getCurrentImageData();
     if (!imageData) {
       this.statusText.textContent = 'No image to process';
       return;
     }
+
+    // Always binarize with fixed threshold
+    const threshold = 128;
+    imageData = MorphologicalFilters.binarize(imageData, threshold);
 
     const iterationsInput = document.getElementById('morph-iterations') as HTMLInputElement;
     const iterations = parseInt(iterationsInput?.value ?? '1', 10);
@@ -1496,6 +1538,145 @@ export class UIController {
       this.drawingManager.updateImageData(result);
       const iterText = maxIterations === 0 ? 'until convergence' : `${maxIterations} iteration(s)`;
       this.statusText.textContent = `${filterNames[filterType]} applied (${iterText})`;
+    }, 10);
+  }
+
+  // Current mask color for visualization
+  private currentMaskColor: { r: number; g: number; b: number } = { r: 0, g: 255, b: 0 };
+
+  // Initialize color area analysis panel
+  private initializeGreenAreaAnalysis(): void {
+    // Color preset change handler - auto analyze on change
+    const presetSelect = document.getElementById('color-preset-select') as HTMLSelectElement;
+    presetSelect?.addEventListener('change', () => {
+      this.updateColorPreset(presetSelect.value);
+      // Auto-analyze when preset changes if image is loaded
+      if (this.drawingManager.hasImageData()) {
+        this.analyzeColorArea();
+      }
+    });
+
+    // Hue/Sat input change handlers - auto analyze on change
+    const inputIds = ['green-hue-min', 'green-hue-max', 'green-sat-min', 'green-sat-max'];
+    inputIds.forEach(id => {
+      const input = document.getElementById(id) as HTMLInputElement;
+      input?.addEventListener('change', () => {
+        if (this.drawingManager.hasImageData()) {
+          this.analyzeColorArea();
+        }
+      });
+    });
+
+    // Analyze button
+    document.getElementById('btn-analyze-green')?.addEventListener('click', () => {
+      this.analyzeColorArea();
+    });
+
+    // Show mask button
+    document.getElementById('btn-show-green-mask')?.addEventListener('click', () => {
+      if (!this.lastGreenAnalysisResult) {
+        this.statusText.textContent = 'Please analyze color areas first';
+        return;
+      }
+      this.drawingManager.updateImageData(this.lastGreenAnalysisResult.maskImageData);
+      this.statusText.textContent = 'Showing color detection mask';
+    });
+
+    // Reset button
+    document.getElementById('btn-green-reset')?.addEventListener('click', () => {
+      this.drawingManager.resetToOriginalImage();
+      this.statusText.textContent = 'Image reset to original';
+    });
+  }
+
+  // Update UI when color preset changes
+  private updateColorPreset(presetName: string): void {
+    const preset = GreenAreaAnalyzer.getPreset(presetName);
+
+    // Update input fields with preset values
+    const hueMinEl = document.getElementById('green-hue-min') as HTMLInputElement;
+    const hueMaxEl = document.getElementById('green-hue-max') as HTMLInputElement;
+    const satMinEl = document.getElementById('green-sat-min') as HTMLInputElement;
+    const satMaxEl = document.getElementById('green-sat-max') as HTMLInputElement;
+
+    if (hueMinEl) hueMinEl.value = String(preset.hueMin);
+    if (hueMaxEl) hueMaxEl.value = String(preset.hueMax);
+    if (satMinEl) satMinEl.value = String(preset.satMin);
+    if (satMaxEl) satMaxEl.value = String(preset.satMax ?? 255);
+
+    // Update mask color
+    this.currentMaskColor = preset.maskColor;
+
+    // Update color preview
+    const colorPreview = document.getElementById('color-preview-box');
+    if (colorPreview) {
+      colorPreview.style.backgroundColor = `rgb(${preset.maskColor.r}, ${preset.maskColor.g}, ${preset.maskColor.b})`;
+    }
+
+    // Update result colors
+    const percentageEl = document.getElementById('green-percentage');
+    const pixelCountEl = document.getElementById('green-pixel-count');
+    const coverageBar = document.getElementById('green-coverage-bar');
+    const colorStr = `rgb(${preset.maskColor.r}, ${preset.maskColor.g}, ${preset.maskColor.b})`;
+
+    if (percentageEl) percentageEl.style.color = colorStr;
+    if (pixelCountEl) pixelCountEl.style.color = colorStr;
+    if (coverageBar) coverageBar.style.backgroundColor = colorStr;
+
+    this.statusText.textContent = `Color preset changed to: ${preset.name}`;
+  }
+
+  // Analyze color area in the image
+  private analyzeColorArea(): void {
+    const imageData = this.drawingManager.getCurrentImageData();
+    if (!imageData) {
+      this.statusText.textContent = 'No image to analyze';
+      return;
+    }
+
+    // Get current preset for Val values and name
+    const presetSelect = document.getElementById('color-preset-select') as HTMLSelectElement;
+    const presetName = presetSelect?.value ?? 'green';
+    const preset = GreenAreaAnalyzer.getPreset(presetName);
+
+    // Get threshold values from inputs (Hue and Sat can be adjusted by user)
+    const hueMin = parseInt((document.getElementById('green-hue-min') as HTMLInputElement)?.value ?? '0', 10);
+    const hueMax = parseInt((document.getElementById('green-hue-max') as HTMLInputElement)?.value ?? '360', 10);
+    const satMin = parseInt((document.getElementById('green-sat-min') as HTMLInputElement)?.value ?? '0', 10);
+    const satMax = parseInt((document.getElementById('green-sat-max') as HTMLInputElement)?.value ?? '255', 10);
+
+    this.statusText.textContent = `Analyzing ${preset.name}...`;
+
+    // Use setTimeout to allow UI to update
+    setTimeout(() => {
+      const result = GreenAreaAnalyzer.analyzeWithCustomThresholds(
+        imageData, 
+        hueMin, 
+        hueMax, 
+        satMin, 
+        preset.valMin,      // Val from preset
+        satMax, 
+        preset.valMax ?? 255,  // Val from preset
+        this.currentMaskColor
+      );
+      this.lastGreenAnalysisResult = result;
+
+      // Update UI with results
+      const percentageEl = document.getElementById('green-percentage');
+      const pixelCountEl = document.getElementById('green-pixel-count');
+      const totalPixelCountEl = document.getElementById('total-pixel-count');
+      const coverageBar = document.getElementById('green-coverage-bar');
+      const coverageLabel = document.getElementById('green-coverage-label');
+
+      const percentageFormatted = result.percentage.toFixed(2);
+
+      if (percentageEl) percentageEl.textContent = `${percentageFormatted}%`;
+      if (pixelCountEl) pixelCountEl.textContent = result.matchedPixels.toLocaleString();
+      if (totalPixelCountEl) totalPixelCountEl.textContent = result.totalPixels.toLocaleString();
+      if (coverageBar) coverageBar.style.width = `${Math.min(result.percentage, 100)}%`;
+      if (coverageLabel) coverageLabel.textContent = `${percentageFormatted}%`;
+
+      this.statusText.textContent = `${preset.name} analysis complete: ${percentageFormatted}% coverage`;
     }, 10);
   }
 }
